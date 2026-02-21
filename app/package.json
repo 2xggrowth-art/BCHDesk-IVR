@@ -1,0 +1,51 @@
+{
+  "name": "bch-crm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BCH Lead Management System - Production CRM",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:bdc": "cross-env VITE_APP_ROLE=bdc vite build --outDir dist/bdc",
+    "build:staff": "cross-env VITE_APP_ROLE=staff vite build --outDir dist/staff",
+    "build:manager": "cross-env VITE_APP_ROLE=manager vite build --outDir dist/manager",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx",
+    "cap:init": "cap init",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android",
+    "apk:bdc": "npm run build:bdc && node scripts/prepare-flavor.js bdc && cap sync android && cd android && ./gradlew assembleBdcRelease",
+    "apk:staff": "npm run build:staff && node scripts/prepare-flavor.js staff && cap sync android && cd android && ./gradlew assembleStaffRelease",
+    "apk:manager": "npm run build:manager && node scripts/prepare-flavor.js manager && cap sync android && cd android && ./gradlew assembleManagerRelease",
+    "apk:all": "npm run apk:bdc && npm run apk:staff && npm run apk:manager"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/keyboard": "^6.0.0",
+    "@capacitor/network": "^6.0.0",
+    "@capacitor/preferences": "^6.0.0",
+    "@capacitor/push-notifications": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "idb": "^8.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.0",
+    "zustand": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "cross-env": "^7.0.3",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4"
+  }
+}

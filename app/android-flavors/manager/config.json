@@ -1,0 +1,19 @@
+{
+  "appId": "com.crm.manager",
+  "appName": "BCH Manager",
+  "role": "manager",
+  "themeColor": "#7c3aed",
+  "features": {
+    "liveDashboard": true,
+    "contentROI": true,
+    "teamPerformance": true,
+    "pipelineView": true,
+    "reportsAnalytics": true,
+    "leadReassignment": true,
+    "automationEngine": true,
+    "incomingLeads": false,
+    "qualificationForm": false,
+    "callbackQueue": false,
+    "walkinCapture": false
+  }
+}

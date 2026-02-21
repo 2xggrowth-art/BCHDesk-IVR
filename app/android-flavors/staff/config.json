@@ -1,0 +1,18 @@
+{
+  "appId": "com.crm.staff",
+  "appName": "BCH Sales",
+  "role": "staff",
+  "themeColor": "#0d904f",
+  "features": {
+    "myLeads": true,
+    "leadDetail": true,
+    "callActions": true,
+    "whatsappActions": true,
+    "outcomeChips": true,
+    "followupScheduling": true,
+    "walkinCapture": true,
+    "visitConversion": true,
+    "incomingLeads": false,
+    "liveDashboard": false
+  }
+}

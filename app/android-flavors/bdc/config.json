@@ -1,0 +1,16 @@
+{
+  "appId": "com.crm.bdc",
+  "appName": "BCH Caller",
+  "role": "bdc",
+  "themeColor": "#1a73e8",
+  "features": {
+    "incomingLeads": true,
+    "qualificationForm": true,
+    "callbackQueue": true,
+    "spamMarking": true,
+    "autoAssign": true,
+    "myLeads": false,
+    "liveDashboard": false,
+    "reportsAnalytics": false
+  }
+}
