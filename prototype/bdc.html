@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>BDC Dashboard - BCH</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ===== INCOMING CALL SCREEN ===== */
+    .call-ring-wrapper {
+      text-align: center;
+      padding: 20px 16px 12px;
+    }
+
+    .call-ring-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 12px;
+      box-shadow: 0 0 0 0 rgba(13, 144, 79, 0.5);
+      animation: callPulse 1.4s infinite;
+    }
+
+    @keyframes callPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(13,144,79,0.5); }
+      70%  { box-shadow: 0 0 0 18px rgba(13,144,79,0); }
+      100% { box-shadow: 0 0 0 0 rgba(13,144,79,0); }
+    }
+
+    .call-phone-number {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--gray-900);
+      letter-spacing: 1px;
+    }
+
+    .call-source-line {
+      font-size: 13px;
+      color: var(--gray-600);
+      margin-top: 4px;
+    }
+
+    .call-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 10px 12px 0;
+    }
+
+    .call-detail-box {
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      text-align: center;
+      border: 1px solid var(--gray-200);
+    }
+
+    .call-detail-label {
+      font-size: 10px;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 3px;
+    }
+
+    .call-detail-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .returning-banner {
+      background: var(--warning-light);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 10px 12px;
+      border-left: 4px solid var(--warning);
+    }
+
+    .returning-banner-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--warning);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .returning-lead-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .returning-lead-detail {
+      font-size: 12px;
+      color: var(--gray-700);
+      margin-top: 2px;
+    }
+
+    .returning-score {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--warning-light);
+      color: var(--warning);
+      border: 1.5px solid var(--warning);
+    }
+
+    .call-action-row {
+      display: flex;
+      gap: 10px;
+      padding: 12px 12px;
+    }
+
+    /* ===== QUALIFY FORM ===== */
+    .qualify-wrap {
+      padding: 10px 12px;
+    }
+
+    .qualify-field {
+      margin-bottom: 14px;
+    }
+
+    .qualify-field-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 7px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .voice-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1.5px solid var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .voice-btn:active {
+      transform: scale(0.95);
+      background: var(--primary);
+      color: white;
+    }
+
+    .voice-btn-icon {
+      font-size: 15px;
+    }
+
+    .auto-score-card {
+      background: linear-gradient(135deg, var(--warning-light), #fff8e6);
+      border: 1.5px solid var(--warning);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .auto-score-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .auto-score-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--warning);
+    }
+
+    .auto-assign-card {
+      background: var(--success-light);
+      border: 1.5px solid var(--success);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .auto-assign-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--success);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .auto-assign-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .qualify-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 12px;
+    }
+
+    /* ===== LEAD LIST ===== */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-bar::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1.5px solid var(--gray-300);
+      background: var(--white);
+      color: var(--gray-700);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .filter-chip.active {
+      background: var(--primary);
+      color: var(--white);
+      border-color: var(--primary);
+    }
+
+    .stats-bar {
+      background: var(--gray-900);
+      color: var(--white);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px 14px;
+      margin: 0 12px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.2px;
+      text-align: center;
+    }
+
+    .stats-bar span {
+      opacity: 0.7;
+      margin: 0 4px;
+    }
+
+    /* ===== CALLBACK QUEUE ===== */
+    .callback-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 8px 12px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--danger);
+    }
+
+    .callback-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+
+    .callback-phone {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .callback-missed-time {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--danger);
+      background: var(--danger-light);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    .callback-meta {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-bottom: 10px;
+    }
+
+    .callback-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .callback-footer {
+      background: var(--gray-900);
+      color: var(--white);
+      font-size: 11px;
+      padding: 10px 14px;
+      margin: 8px 12px;
+      border-radius: var(--radius-sm);
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .section-spacer {
+      height: 8px;
+    }
+
+    /* ===== NAV TAB ACTIVE STATE OVERRIDE FOR BOTTOM NAV ===== */
+    .bottom-nav .nav-item.active .nav-icon,
+    .bottom-nav .nav-item.active span:not(.nav-badge) {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <a href="index.html" class="back-btn" style="text-decoration:none;">&#x2039;</a>
+      <div>
+        <div class="top-bar h1" style="font-size:16px;font-weight:600;">BDC Dashboard</div>
+        <div class="subtitle">Anushka</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <span style="font-size:12px;opacity:0.85;">Callbacks</span>
+      <span class="badge-count" id="callbackBadgeTop">5</span>
+    </div>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="tab-incoming" onclick="switchTab('tab-incoming'); setNavActive(0)">Incoming</button>
+    <button class="tab-btn" data-tab="tab-qualify" onclick="switchTab('tab-qualify'); setNavActive(1)">Qualify</button>
+    <button class="tab-btn" data-tab="tab-leads" onclick="switchTab('tab-leads'); setNavActive(2)">Leads</button>
+    <button class="tab-btn" data-tab="tab-callbacks" onclick="switchTab('tab-callbacks'); setNavActive(3)">Callbacks</button>
+  </div>
+
+  <!-- PAGE CONTENT -->
+  <div class="page-content">
+
+    <!-- ==================== TAB 1: INCOMING ==================== -->
+    <div class="tab-panel active" id="tab-incoming">
+
+      <!-- Incoming call card -->
+      <div class="call-ring-wrapper">
+        <div class="call-ring-icon ringing">&#x1f4de;</div>
+        <div class="call-phone-number">9876543210</div>
+        <div class="call-source-line">Source: <strong>BCH Toyz (IG)</strong> &bull; Bangalore</div>
+      </div>
+
+      <!-- Caller detail grid -->
+      <div class="call-detail-grid">
+        <div class="call-detail-box">
+          <div class="call-detail-label">Location</div>
+          <div class="call-detail-value">Bangalore</div>
+        </div>
+        <div class="call-detail-box">
+          <div class="call-detail-label">Age</div>
+          <div class="call-detail-value">12+</div>
+        </div>
+        <div class="call-detail-box">
+          <div class="call-detail-label">Interest</div>
+          <div class="call-detail-value">Electric</div>
+        </div>
+      </div>
+
+      <!-- Returning caller banner -->
+      <div class="returning-banner">
+        <div class="returning-banner-title">&#x1f501; Returning Caller?</div>
+        <div class="returning-lead-name">Kumar</div>
+        <div class="returning-lead-detail">Doodle inquiry &bull; Feb 15</div>
+        <div class="returning-score">&#x1f525; Score: HOT</div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="call-action-row">
+        <button class="btn btn-success" style="flex:1.6;" onclick="handleQualify()">
+          &#x1f4cb; QUALIFY THIS LEAD
+        </button>
+        <button class="btn btn-danger" style="flex:1;" onclick="handleSpam()">
+          &#x1f6ab; SPAM / WRONG NUMBER
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Quick info note -->
+      <div style="padding: 4px 14px 10px; font-size:12px; color:var(--gray-500); text-align:center;">
+        IVR filtered &bull; BCH Toyz profile &bull; Call started 0:00
+      </div>
+
+    </div>
+    <!-- END TAB 1 -->
+
+
+    <!-- ==================== TAB 2: QUALIFY ==================== -->
+    <div class="tab-panel" id="tab-qualify">
+      <div class="qualify-wrap">
+
+        <!-- NAME -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f464; Name</div>
+          <div class="chip-group" data-multi="false" id="chipName">
+            <button class="voice-btn" onclick="handleVoiceToText()">
+              <span class="voice-btn-icon">&#x1f3a4;</span> Voice-to-Text
+            </button>
+            <button class="chip" data-value="didnt-share">Didn't share</button>
+          </div>
+        </div>
+
+        <!-- AREA -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f4cd; Area</div>
+          <div class="chip-group" data-multi="false" id="chipArea">
+            <button class="chip" data-value="yelahanka">Yelahanka</button>
+            <button class="chip" data-value="hebbal">Hebbal</button>
+            <button class="chip" data-value="rtnagar">RT Nagar</button>
+            <button class="chip" data-value="whitefield">Whitefield</button>
+            <button class="chip" data-value="electroniccity">Electronic City</button>
+            <button class="chip" data-value="rajajinagar">Rajajinagar</button>
+            <button class="chip" data-value="jayanagar">Jayanagar</button>
+            <button class="chip" data-value="otherblr">Other BLR</button>
+            <button class="chip" data-value="outskirts">Outskirts 20km+</button>
+          </div>
+        </div>
+
+        <!-- BUDGET -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f4b0; Budget</div>
+          <div class="chip-group" data-multi="false" id="chipBudget">
+            <button class="chip" data-value="u10k">Under 10K</button>
+            <button class="chip" data-value="10-20k">10-20K</button>
+            <button class="chip" data-value="20-35k">20-35K</button>
+            <button class="chip" data-value="35-50k">35-50K</button>
+            <button class="chip" data-value="50k-1l">50K-1L</button>
+            <button class="chip" data-value="1l+">1L+</button>
+            <button class="chip" data-value="notshared">Not shared</button>
+          </div>
+        </div>
+
+        <!-- PRODUCT INTEREST -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f6b2; Product Interest</div>
+          <div class="chip-group" data-multi="false" id="chipProduct">
+            <button class="chip" data-value="emotorad">EMotorad</button>
+            <button class="chip" data-value="raleigh">Raleigh</button>
+            <button class="chip" data-value="aoki">AOKI</button>
+            <button class="chip" data-value="hercules">Hercules</button>
+            <button class="chip" data-value="herolectro">Hero Lectro</button>
+            <button class="chip" data-value="kids">Kids cycle</button>
+            <button class="chip" data-value="gear">Gear cycle</button>
+            <button class="chip" data-value="secondhand">Second hand</button>
+            <button class="chip" data-value="dontknow">Don't know</button>
+          </div>
+        </div>
+
+        <!-- SPECIFIC MODEL -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f3af; Specific Model</div>
+          <div class="chip-group" data-multi="false" id="chipModel">
+            <button class="chip" data-value="desire">Desire</button>
+            <button class="chip" data-value="doodle">Doodle</button>
+            <button class="chip" data-value="trex">T-Rex</button>
+            <button class="chip" data-value="x1">X1</button>
+            <button class="chip" data-value="raleigh-eco">Raleigh Eco</button>
+            <button class="chip" data-value="other">Other</button>
+            <button class="chip" data-value="none">None</button>
+          </div>
+        </div>
+
+        <!-- VISIT INTENT -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f4c5; Visit Intent</div>
+          <div class="chip-group" data-multi="false" id="chipVisit">
+            <button class="chip" data-value="today">Coming today</button>
+            <button class="chip" data-value="tomorrow">Coming tomorrow</button>
+            <button class="chip" data-value="weekend">This weekend</button>
+            <button class="chip" data-value="nextweek">Next week</button>
+            <button class="chip" data-value="notsure">Not sure</button>
+            <button class="chip" data-value="refused">Refused</button>
+          </div>
+        </div>
+
+        <!-- EMI -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f4b3; EMI</div>
+          <div class="chip-group" data-multi="false" id="chipEmi">
+            <button class="chip" data-value="emi-999">Yes - 999 offer</button>
+            <button class="chip" data-value="emi-regular">Yes - regular EMI</button>
+            <button class="chip" data-value="cash">No - cash/card</button>
+            <button class="chip" data-value="didnt-discuss">Didn't discuss</button>
+          </div>
+        </div>
+
+        <!-- CALL NOTES (multi-select) -->
+        <div class="qualify-field">
+          <div class="qualify-field-label">&#x1f4dd; Call Notes <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--gray-500);">(select all that apply)</span></div>
+          <div class="chip-group" data-multi="true" id="chipNotes">
+            <button class="chip" data-value="test-ride">Wants test ride</button>
+            <button class="chip" data-value="competitor">Comparing with competitor</button>
+            <button class="chip" data-value="family">Needs family approval</button>
+            <button class="chip" data-value="price">Price concern</button>
+            <button class="chip" data-value="color">Looking for specific color</button>
+            <button class="chip" data-value="warranty">Asked about warranty</button>
+            <button class="chip" data-value="delivery">Asked about delivery</button>
+            <button class="chip" data-value="calledbefore">Called before</button>
+            <button class="chip" data-value="clear">Clear - no issues</button>
+          </div>
+        </div>
+
+        <!-- AUTO SCORE -->
+        <div class="auto-score-card">
+          <div>
+            <div class="auto-score-label">&#x26a1; Auto Score</div>
+            <div class="auto-score-value" id="autoScoreDisplay">HOT (0.8)</div>
+          </div>
+          <div class="score-badge hot">HOT</div>
+        </div>
+
+        <!-- AUTO ASSIGN -->
+        <div class="auto-assign-card">
+          <div>
+            <div class="auto-assign-label">&#x1f4e4; Auto-Assign To</div>
+            <div class="auto-assign-value" id="autoAssignDisplay">Suma (E-cycles)</div>
+          </div>
+          <span style="font-size:20px;">&#x2714;&#xfe0f;</span>
+        </div>
+
+        <!-- FORM ACTIONS -->
+        <div class="qualify-actions">
+          <button class="btn btn-success btn-full btn-lg" onclick="handleSaveAssign()">
+            &#x1f4be; SAVE &amp; ASSIGN
+          </button>
+          <button class="btn btn-warning btn-full" onclick="handleScheduleCallback()">
+            &#x1f4f2; SCHEDULE CALLBACK
+          </button>
+          <button class="btn btn-outline btn-full" onclick="handleMarkCold()">
+            &#x2744;&#xfe0f; MARK AS COLD
+          </button>
+        </div>
+
+      </div>
+    </div>
+    <!-- END TAB 2 -->
+
+
+    <!-- ==================== TAB 3: LEADS ==================== -->
+    <div class="tab-panel" id="tab-leads">
+
+      <!-- Filter chips -->
+      <div class="filter-bar">
+        <button class="filter-chip active" onclick="filterLeads('all', this)">All</button>
+        <button class="filter-chip" onclick="filterLeads('today', this)">Today</button>
+        <button class="filter-chip" onclick="filterLeads('callback', this)">Callback</button>
+        <button class="filter-chip" onclick="filterLeads('followup', this)">Follow-up</button>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="stats-bar">
+        TODAY<span>|</span>23 calls<span>|</span>15 qualified<span>|</span>8 assigned<span>|</span>3 callbacks
+      </div>
+
+      <!-- Lead list (rendered by JS) -->
+      <div id="leadList" style="margin-top:4px;"></div>
+
+    </div>
+    <!-- END TAB 3 -->
+
+
+    <!-- ==================== TAB 4: CALLBACKS ==================== -->
+    <div class="tab-panel" id="tab-callbacks">
+
+      <!-- Alert banner -->
+      <div class="alert alert-danger" style="margin-top:10px;">
+        <span style="font-size:18px;">&#x26a0;&#xfe0f;</span>
+        <div>
+          <strong>WARNING: 5 callbacks waiting</strong>
+          <div style="font-size:11px;margin-top:1px;">Respond within 15 minutes of missed call</div>
+        </div>
+      </div>
+
+      <!-- Callback cards (rendered by JS) -->
+      <div id="callbackList"></div>
+
+      <!-- Footer -->
+      <div class="callback-footer">
+        Oldest callback: 2 hrs 15 min ago &nbsp;|&nbsp; Target: within 15 min
+      </div>
+
+    </div>
+    <!-- END TAB 4 -->
+
+  </div>
+  <!-- END PAGE CONTENT -->
+
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="navIncoming" onclick="switchTab('tab-incoming'); setNavActive(0)">
+      <span class="nav-icon">&#x1f4de;</span>
+      <span>Incoming</span>
+    </button>
+    <button class="nav-item" id="navQualify" onclick="switchTab('tab-qualify'); setNavActive(1)">
+      <span class="nav-icon">&#x1f4cb;</span>
+      <span>Qualify</span>
+    </button>
+    <button class="nav-item" id="navLeads" onclick="switchTab('tab-leads'); setNavActive(2)">
+      <span class="nav-icon">&#x1f4c4;</span>
+      <span>Leads</span>
+    </button>
+    <button class="nav-item" id="navCallbacks" onclick="switchTab('tab-callbacks'); setNavActive(3)" style="position:relative;">
+      <span class="nav-icon">&#x1f514;</span>
+      <span class="nav-badge" id="navCallbackBadge">5</span>
+      <span>Callbacks</span>
+    </button>
+  </nav>
+
+
+  <script src="data.js"></script>
+  <script>
+    // ===== NAV ACTIVE STATE =====
+    const navItems = ['navIncoming', 'navQualify', 'navLeads', 'navCallbacks'];
+
+    function setNavActive(idx) {
+      navItems.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (i === idx) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+    }
+
+    // ===== INCOMING CALL HANDLERS =====
+    function handleQualify() {
+      switchTab('tab-qualify');
+      setNavActive(1);
+      showToast('Opening qualification form for 9876543210', 'info');
+    }
+
+    function handleSpam() {
+      showToast('Marked as spam / wrong number. Call logged.', 'warning');
+      // Simulate moving on after a beat
+      setTimeout(() => {
+        showToast('Ready for next call.', 'success');
+      }, 1800);
+    }
+
+    function handleVoiceToText() {
+      showToast('Voice-to-text activated. Speak the name now...', 'info');
+      // Simulate a name being captured
+      setTimeout(() => {
+        const nameChip = document.querySelector('#chipName .chip[data-value="didnt-share"]');
+        if (nameChip) nameChip.textContent = 'Kumar (captured)';
+        showToast('Name captured: Kumar', 'success');
+      }, 2200);
+    }
+
+    // ===== QUALIFY FORM HANDLERS =====
+    function handleSaveAssign() {
+      const score = document.getElementById('autoScoreDisplay').textContent;
+      const assign = document.getElementById('autoAssignDisplay').textContent;
+      showToast('Lead saved! Assigned to ' + assign + ' | Score: ' + score, 'success');
+      setTimeout(() => {
+        switchTab('tab-leads');
+        setNavActive(2);
+      }, 1200);
+    }
+
+    function handleScheduleCallback() {
+      showToast('Callback scheduled. Added to callback queue.', 'warning');
+      // Update badge
+      const current = parseInt(document.getElementById('navCallbackBadge').textContent);
+      document.getElementById('navCallbackBadge').textContent = current + 1;
+      document.getElementById('callbackBadgeTop').textContent = current + 1;
+    }
+
+    function handleMarkCold() {
+      showToast('Lead marked as COLD. No immediate follow-up.', 'info');
+      setTimeout(() => {
+        switchTab('tab-leads');
+        setNavActive(2);
+      }, 1200);
+    }
+
+    // ===== LEAD SCORE HELPER =====
+    function getScoreBadgeHtml(score) {
+      if (!score) return '<span class="score-badge cold">Unscored</span>';
+      const cls = score.toLowerCase().replace(' ', '');
+      const icons = { veryhot: '&#x1f525;&#x1f525;', hot: '&#x1f525;', warm: '&#x1f7e1;', cold: '&#x2744;&#xfe0f;' };
+      const icon = icons[cls] || '';
+      return `<span class="score-badge ${cls}">${icon} ${score}</span>`;
+    }
+
+    // ===== LEAD CARD RENDERER =====
+    function renderLeads(leads) {
+      const container = document.getElementById('leadList');
+      if (!leads.length) {
+        container.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--gray-500);font-size:14px;">No leads found</div>';
+        return;
+      }
+
+      container.innerHTML = leads.map(lead => {
+        const scoreClass = lead.score ? 'score-' + lead.score.toLowerCase().replace(' ', '') : '';
+        const sourceName = getProfileName(lead.source);
+        const assignedName = lead.assignedTo ? getStaffName(lead.assignedTo) : 'Unassigned';
+        const timeAgoStr = timeAgo(lead.lastContact || lead.createdAt);
+        const displayName = lead.name || lead.phone;
+
+        return `
+          <div class="lead-card ${scoreClass}" onclick="showToast('Opening lead: ${displayName}', 'info')">
+            <div class="lead-card-top">
+              <div>
+                <div class="lead-name">${displayName}</div>
+                <div class="lead-interest">${lead.interest}${lead.model && lead.model !== 'None' ? ' &bull; ' + lead.model : ''}</div>
+              </div>
+              ${getScoreBadgeHtml(lead.score)}
+            </div>
+            <div class="lead-meta">
+              <span class="lead-tag tag-source">${sourceName}</span>
+              ${lead.budget ? `<span class="lead-tag tag-budget">${lead.budget}</span>` : ''}
+              ${lead.visitIntent ? `<span class="lead-tag tag-visit">${lead.visitIntent}</span>` : ''}
+              ${lead.area ? `<span class="lead-tag tag-time">${lead.area}</span>` : ''}
+            </div>
+            <div class="lead-footer">
+              <span>&#x1f464; ${assignedName}</span>
+              <span>${timeAgoStr}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== LEAD FILTER =====
+    function filterLeads(type, chipEl) {
+      // Update filter chip active state
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      if (chipEl) chipEl.classList.add('active');
+
+      const today = '2026-02-21';
+      let filtered;
+
+      switch (type) {
+        case 'today':
+          filtered = BCH.leads.filter(l => l.createdAt && l.createdAt.startsWith(today));
+          break;
+        case 'callback':
+          filtered = BCH.leads.filter(l => l.followUpDate === today && l.stage === 'Follow-up Active');
+          break;
+        case 'followup':
+          filtered = BCH.leads.filter(l => l.followUpDate && l.followUpDate >= today);
+          break;
+        default:
+          filtered = BCH.leads;
+      }
+
+      renderLeads(filtered);
+    }
+
+    // ===== CALLBACK RENDERER =====
+    function renderCallbacks() {
+      const container = document.getElementById('callbackList');
+
+      container.innerHTML = BCH.callbacks.map((cb, idx) => {
+        const sourceName = getProfileName(cb.source);
+        return `
+          <div class="callback-card" id="cbCard${idx}">
+            <div class="callback-card-top">
+              <div class="callback-phone">${cb.phone}</div>
+              <span class="callback-missed-time">Missed ${cb.missedAt}</span>
+            </div>
+            <div class="callback-meta">
+              Source: <strong>${sourceName}</strong> &bull; Interest: <strong>${cb.interest}</strong>
+            </div>
+            <div class="callback-actions">
+              <button class="btn btn-success btn-sm" style="flex:1;" onclick="handleCallbackCall(${idx}, '${cb.phone}')">
+                &#x1f4de; CALL
+              </button>
+              <button class="btn btn-outline btn-sm" style="flex:1;" onclick="handleCallbackLater(${idx})">
+                &#x23f0; LATER
+              </button>
+              <button class="btn btn-danger btn-sm" style="flex:1;" onclick="handleCallbackSkip(${idx})">
+                &#x23ed;&#xfe0f; SKIP
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== CALLBACK HANDLERS =====
+    function handleCallbackCall(idx, phone) {
+      showToast('Calling ' + phone + '...', 'success');
+      setTimeout(() => {
+        const card = document.getElementById('cbCard' + idx);
+        if (card) {
+          card.style.opacity = '0.4';
+          card.style.pointerEvents = 'none';
+        }
+        // Decrement badge
+        decrementCallbackBadge();
+        showToast('Call connected. Qualify the lead.', 'info');
+        setTimeout(() => { switchTab('tab-qualify'); setNavActive(1); }, 1000);
+      }, 1500);
+    }
+
+    function handleCallbackLater(idx) {
+      showToast('Callback snoozed for 10 minutes.', 'warning');
+      const card = document.getElementById('cbCard' + idx);
+      if (card) {
+        card.style.borderLeftColor = 'var(--warning)';
+      }
+    }
+
+    function handleCallbackSkip(idx) {
+      showToast('Callback skipped. Escalating to Meera.', 'danger');
+      const card = document.getElementById('cbCard' + idx);
+      if (card) {
+        card.style.opacity = '0.35';
+        card.style.pointerEvents = 'none';
+      }
+      decrementCallbackBadge();
+    }
+
+    function decrementCallbackBadge() {
+      const badge = document.getElementById('navCallbackBadge');
+      const topBadge = document.getElementById('callbackBadgeTop');
+      const current = parseInt(badge.textContent);
+      if (current > 0) {
+        const next = current - 1;
+        badge.textContent = next;
+        topBadge.textContent = next;
+        if (next === 0) {
+          badge.style.display = 'none';
+          topBadge.style.display = 'none';
+        }
+      }
+    }
+
+    // ===== INIT =====
+    document.addEventListener('DOMContentLoaded', () => {
+      initChips();
+      renderLeads(BCH.leads);
+      renderCallbacks();
+
+      // Update chip selections to auto-update score display
+      document.querySelectorAll('.chip-group').forEach(group => {
+        group.querySelectorAll('.chip').forEach(chip => {
+          chip.addEventListener('click', updateAutoScore);
+        });
+      });
+    });
+
+    // ===== AUTO SCORE UPDATER =====
+    function updateAutoScore() {
+      // Simple heuristic: count selected chips to determine score
+      const selectedCount = document.querySelectorAll('.chip.selected').length;
+
+      let score, cls;
+      if (selectedCount >= 6) {
+        score = 'VERY HOT (0.95)';
+        cls = 'veryhot';
+      } else if (selectedCount >= 4) {
+        score = 'HOT (0.8)';
+        cls = 'hot';
+      } else if (selectedCount >= 2) {
+        score = 'WARM (0.55)';
+        cls = 'warm';
+      } else {
+        score = 'COLD (0.2)';
+        cls = 'cold';
+      }
+
+      const scoreDisplay = document.getElementById('autoScoreDisplay');
+      const scoreBadge = scoreDisplay.closest('.auto-score-card').querySelector('.score-badge');
+      scoreDisplay.textContent = score;
+      scoreBadge.className = 'score-badge ' + cls;
+      scoreBadge.textContent = score.split(' ')[0];
+
+      // Update assign based on product selection
+      const productChip = document.querySelector('#chipProduct .chip.selected');
+      const assignDisplay = document.getElementById('autoAssignDisplay');
+      if (productChip) {
+        const val = productChip.dataset.value;
+        if (val === 'emotorad' || val === 'herolectro') {
+          assignDisplay.textContent = 'Suma (E-cycles)';
+        } else if (val === 'raleigh' || val === 'aoki') {
+          assignDisplay.textContent = 'Sunil (Premium)';
+        } else if (val === 'kids') {
+          assignDisplay.textContent = 'Nithin (Kids)';
+        } else if (val === 'secondhand') {
+          assignDisplay.textContent = 'Baba (2nd Life)';
+        } else if (val === 'gear') {
+          assignDisplay.textContent = 'Abhi Gowda (Gear)';
+        } else {
+          assignDisplay.textContent = 'Suma (E-cycles)';
+        }
+      }
+    }
+  </script>
+</body>
+</html>

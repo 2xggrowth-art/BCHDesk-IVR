@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>IVR Flow - BCH Lead Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ===== IVR PAGE SPECIFIC ===== */
+    .page-content {
+      padding-bottom: 32px;
+    }
+
+    /* ===== FLOW CANVAS ===== */
+    .flow-canvas {
+      padding: 16px 12px 24px;
+    }
+
+    /* ===== INCOMING CALL NODE ===== */
+    .flow-node-incoming {
+      background: linear-gradient(135deg, #1a73e8, #1557b0);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin: 0 12px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+    .flow-node-incoming .node-icon { font-size: 24px; margin-bottom: 4px; }
+    .flow-node-incoming .node-title { font-size: 15px; font-weight: 700; }
+    .flow-node-incoming .node-sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+    /* ===== STEP NODE ===== */
+    .flow-node {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 0 12px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--primary);
+      position: relative;
+      transition: box-shadow 0.2s;
+    }
+    .flow-node.filter {
+      border-left-color: var(--danger);
+      background: #fff5f5;
+    }
+    .flow-node.connect {
+      border-left-color: var(--success);
+      background: #f0fdf4;
+    }
+    .flow-node.action {
+      border-left-color: var(--warning);
+      background: #fffbeb;
+    }
+    .flow-node.highlighted {
+      box-shadow: 0 0 0 2px var(--primary), var(--shadow-md);
+    }
+    .flow-node.highlighted-filter {
+      box-shadow: 0 0 0 2px var(--danger), var(--shadow-md);
+    }
+    .flow-node.highlighted-connect {
+      box-shadow: 0 0 0 2px var(--success), var(--shadow-md);
+    }
+
+    .node-step-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+    .node-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .node-sub {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-top: 2px;
+    }
+
+    /* ===== FLOW CONNECTOR ===== */
+    .flow-connector {
+      width: 2px;
+      height: 20px;
+      background: var(--gray-300);
+      margin: 0 auto;
+      transition: background 0.3s;
+    }
+    .flow-connector.active-path { background: var(--primary); }
+    .flow-connector.filter-path { background: var(--danger); }
+    .flow-connector.connect-path { background: var(--success); }
+
+    /* ===== OPTION BUTTONS (interactive) ===== */
+    .option-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .flow-option {
+      flex: 1;
+      min-width: 80px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--gray-300);
+      background: var(--white);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      line-height: 1.3;
+    }
+    .flow-option:active { transform: scale(0.95); }
+    .flow-option.selected-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .flow-option.selected-danger {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: white;
+    }
+    .flow-option.selected-success {
+      background: var(--success);
+      border-color: var(--success);
+      color: white;
+    }
+    .flow-option.selected-warning {
+      background: var(--warning);
+      border-color: var(--warning);
+      color: white;
+    }
+    .flow-option.dimmed {
+      opacity: 0.35;
+    }
+
+    /* ===== BRANCH CONTAINER ===== */
+    .branch-container {
+      display: flex;
+      gap: 0;
+      margin: 0 12px;
+      position: relative;
+    }
+    .branch-side {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .branch-line {
+      width: 1px;
+      flex: 1;
+      min-height: 16px;
+      background: var(--danger);
+    }
+    .branch-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--danger);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding: 2px 6px;
+      background: var(--danger-light);
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .branch-label.pass {
+      color: var(--success);
+      background: var(--success-light);
+    }
+
+    /* ===== FILTER RESULT NODE ===== */
+    .filter-result-node {
+      background: #fff5f5;
+      border: 1.5px dashed var(--danger);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin: 0 12px;
+      font-size: 12px;
+      color: var(--danger);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.3s;
+    }
+    .filter-result-node .filter-icon { font-size: 16px; flex-shrink: 0; }
+
+    /* ===== INTEREST GRID ===== */
+    .interest-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .interest-option {
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--gray-300);
+      background: var(--white);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-700);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .interest-option .price {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+    .interest-option:active { transform: scale(0.95); }
+    .interest-option.selected-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .interest-option.selected-primary .price { color: rgba(255,255,255,0.8); }
+
+    /* ===== FLOW HINT ===== */
+    .flow-hint {
+      text-align: center;
+      font-size: 11px;
+      color: var(--gray-500);
+      padding: 8px 16px 0;
+      font-style: italic;
+    }
+
+    /* ===== RESET BUTTON ===== */
+    .flow-reset-btn {
+      display: block;
+      margin: 12px auto 0;
+      padding: 8px 20px;
+      border-radius: var(--radius-full);
+      background: none;
+      border: 1.5px solid var(--gray-300);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .flow-reset-btn:active { transform: scale(0.95); }
+
+    /* ===== SCRIPT STYLES ===== */
+    .lang-toggle {
+      display: flex;
+      gap: 8px;
+      padding: 12px 12px 0;
+    }
+    .lang-btn {
+      flex: 1;
+      padding: 9px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--gray-300);
+      background: var(--white);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .script-panel { display: none; }
+    .script-panel.active { display: block; }
+
+    .script-step-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      margin: 8px 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .script-step-header {
+      padding: 10px 14px;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .script-step-num {
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .script-step-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+    .script-step-body {
+      padding: 12px 14px;
+    }
+    .script-text {
+      font-size: 13px;
+      color: var(--gray-800);
+      line-height: 1.6;
+      font-style: italic;
+    }
+    .script-options-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+    .script-option-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 12px;
+      color: var(--gray-700);
+    }
+    .script-key {
+      width: 22px;
+      height: 22px;
+      background: var(--gray-100);
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--gray-800);
+    }
+    .script-filter-note {
+      font-size: 11px;
+      color: var(--danger);
+      background: var(--danger-light);
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    /* ===== IMPACT STYLES ===== */
+    .impact-hero {
+      background: linear-gradient(135deg, #7c3aed, #5b21b6);
+      color: white;
+      padding: 20px 16px;
+      margin: 8px 12px;
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+    .impact-hero .big-num { font-size: 42px; font-weight: 800; line-height: 1; }
+    .impact-hero .big-label { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+    .impact-hero .big-sub { font-size: 11px; opacity: 0.75; margin-top: 6px; }
+
+    .bar-chart-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+    }
+    .bar-label {
+      font-size: 11px;
+      color: var(--gray-700);
+      min-width: 78px;
+      text-align: right;
+      line-height: 1.2;
+    }
+    .bar-track {
+      flex: 1;
+      height: 22px;
+      background: var(--gray-100);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      padding-left: 7px;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+      transition: width 0.8s ease;
+      min-width: 28px;
+    }
+    .bar-pct {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-600);
+      min-width: 32px;
+    }
+
+    .result-card {
+      background: var(--gray-900);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 8px 12px;
+      text-align: center;
+      color: white;
+    }
+    .result-card .result-label { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+    .result-card .result-value { font-size: 24px; font-weight: 800; color: #4ade80; }
+    .result-card .result-sub { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+
+    .capture-table-wrap {
+      margin: 0 12px 8px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .capture-table-header {
+      background: var(--success);
+      color: white;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .capture-row {
+      display: flex;
+      align-items: center;
+      background: var(--white);
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--gray-100);
+      gap: 10px;
+    }
+    .capture-row:last-child { border-bottom: none; }
+    .capture-num {
+      width: 20px;
+      height: 20px;
+      background: var(--success-light);
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .capture-field {
+      flex: 1;
+      font-size: 13px;
+      color: var(--gray-800);
+      font-weight: 500;
+    }
+    .capture-source {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .zero-effort-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--success-light);
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      margin: 8px 12px 0;
+    }
+
+    /* ===== ANIMATED FLOW PATH ===== */
+    @keyframes flowPulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    .flow-connector.animating {
+      animation: flowPulse 0.8s ease 3;
+    }
+
+    @keyframes nodeGlow {
+      0% { box-shadow: 0 0 0 0px rgba(26,115,232,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(26,115,232,0.1); }
+      100% { box-shadow: 0 0 0 0px rgba(26,115,232,0.0); }
+    }
+    .flow-node.just-activated {
+      animation: nodeGlow 0.6s ease forwards;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <button class="back-btn" onclick="window.location.href='index.html'">&#x2190;</button>
+      <div>
+        <h1>IVR Flow</h1>
+        <div class="subtitle">CallerDesk &middot; BCH Lead System</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <span style="font-size:11px; background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:10px; font-weight:600;">LIVE</span>
+    </div>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="tab-flow" onclick="switchTab('tab-flow')">Flow View</button>
+    <button class="tab-btn" data-tab="tab-scripts" onclick="switchTab('tab-scripts')">Scripts</button>
+    <button class="tab-btn" data-tab="tab-impact" onclick="switchTab('tab-impact')">Impact</button>
+  </div>
+
+  <!-- ==================== FLOW VIEW TAB ==================== -->
+  <div id="tab-flow" class="tab-panel active">
+    <div class="page-content">
+
+      <p class="flow-hint">Tap any option to walk through the IVR path</p>
+
+      <div class="flow-canvas">
+
+        <!-- INCOMING CALL -->
+        <div class="flow-node-incoming" id="node-incoming">
+          <div class="node-icon">&#x260e;</div>
+          <div class="node-title">INCOMING CALL</div>
+          <div class="node-sub">CallerDesk IVR answers automatically</div>
+        </div>
+
+        <div class="flow-connector" id="conn-0"></div>
+
+        <!-- STEP 1: Language -->
+        <div class="flow-node" id="node-lang">
+          <div class="node-step-label">Step 1 &mdash; Language</div>
+          <div class="node-title">Choose Your Language</div>
+          <div class="node-sub">Caller selects preferred language</div>
+          <div class="option-group">
+            <button class="flow-option" id="opt-kannada" onclick="selectOption('lang','kannada')">
+              &#x1f1ee;&#x1f1f3; Kannada<br><span style="font-size:10px;font-weight:400;opacity:0.8;">Press 1</span>
+            </button>
+            <button class="flow-option" id="opt-english" onclick="selectOption('lang','english')">
+              &#x1f1ec;&#x1f1e7; English<br><span style="font-size:10px;font-weight:400;opacity:0.8;">Press 2</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flow-connector" id="conn-1"></div>
+
+        <!-- STEP 2: Location -->
+        <div class="flow-node" id="node-location">
+          <div class="node-step-label">Step 2 &mdash; Location</div>
+          <div class="node-title">Are you in Bangalore?</div>
+          <div class="node-sub">Filters outstation callers automatically</div>
+          <div class="option-group">
+            <button class="flow-option" id="opt-bangalore" onclick="selectOption('location','bangalore')">
+              &#x1f4cd; Yes, Bangalore<br><span style="font-size:10px;font-weight:400;opacity:0.8;">Press 1</span>
+            </button>
+            <button class="flow-option" id="opt-outside" onclick="selectOption('location','outside')">
+              &#x1f6ab; Outside BLR<br><span style="font-size:10px;font-weight:400;opacity:0.8;">Press 2</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTER: Outside BLR -->
+        <div id="filter-outside-wrap">
+          <div class="flow-connector filter-path" id="conn-filter-outside" style="display:none;"></div>
+          <div class="filter-result-node" id="filter-outside" style="display:none;">
+            <span class="filter-icon">&#x1f6ab;</span>
+            <div>
+              <div style="margin-bottom:2px;">FILTERED &mdash; Outside Bangalore</div>
+              <div style="font-size:11px;font-weight:400;color:var(--gray-600);">Auto-WhatsApp sent: delivery info + store location</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-connector" id="conn-2"></div>
+
+        <!-- STEP 3: Age Check -->
+        <div class="flow-node" id="node-age">
+          <div class="node-step-label">Step 3 &mdash; Age Check</div>
+          <div class="node-title">Is the rider 12 years or older?</div>
+          <div class="node-sub">Separate path for kids under 12</div>
+          <div class="option-group">
+            <button class="flow-option" id="opt-adult" onclick="selectOption('age','adult')">
+              &#x1f9d1; Age 12+<br><span style="font-size:10px;font-weight:400;opacity:0.8;">Press 1</span>
+            </button>
+            <button class="flow-option" id="opt-kid" onclick="selectOption('age','kid')">
+              &#x1f476; Under 12<br><span style="font-size:10px;font-weight:400;opacity:0.8;">Press 2</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTER: Under 12 -->
+        <div id="filter-kid-wrap">
+          <div class="flow-connector filter-path" id="conn-filter-kid" style="display:none;"></div>
+          <div class="filter-result-node" id="filter-kid" style="display:none;">
+            <span class="filter-icon">&#x1f476;</span>
+            <div>
+              <div style="margin-bottom:2px;">FILTERED &mdash; Kids Under 12</div>
+              <div style="font-size:11px;font-weight:400;color:var(--gray-600);">Auto-WhatsApp sent: BCH Toyz kids pricing catalogue</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-connector" id="conn-3"></div>
+
+        <!-- STEP 4: Interest -->
+        <div class="flow-node" id="node-interest">
+          <div class="node-step-label">Step 4 &mdash; Interest</div>
+          <div class="node-title">What are you looking for?</div>
+          <div class="node-sub">Routes to the right product category</div>
+          <div class="interest-grid">
+            <button class="interest-option" id="opt-electric" onclick="selectInterest('electric')">
+              &#x26a1; Electric Bikes
+              <span class="price">Rs.20K&ndash;1L+</span>
+            </button>
+            <button class="interest-option" id="opt-gear" onclick="selectInterest('gear')">
+              &#x2699; Gear Cycles
+              <span class="price">Rs.10K&ndash;80K</span>
+            </button>
+            <button class="interest-option" id="opt-kids" onclick="selectInterest('kids')">
+              &#x1f6b2; Kids / Teen
+              <span class="price">Rs.5K&ndash;20K</span>
+            </button>
+            <button class="interest-option" id="opt-secondhand" onclick="selectInterest('secondhand')">
+              &#x267b; Second Hand
+              <span class="price">Rs.8K&ndash;25K</span>
+            </button>
+            <button class="interest-option" id="opt-service" onclick="selectInterest('service')">
+              &#x1f527; Service / Repair
+              <span class="price">Rs.300&ndash;3K</span>
+            </button>
+            <button class="interest-option" id="opt-other" onclick="selectInterest('other')">
+              &#x2753; Other / Unsure
+              <span class="price">Tell us more</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flow-connector" id="conn-4"></div>
+
+        <!-- STEP 5: Connect to BDC -->
+        <div class="flow-node connect" id="node-connect">
+          <div class="node-step-label" style="color:var(--success);">Step 5 &mdash; Human Handoff</div>
+          <div class="node-title">Connecting to BDC Agent</div>
+          <div class="node-sub">Anushka / Meera &mdash; your dedicated advisor</div>
+          <div class="option-group" style="margin-top:10px;">
+            <button class="flow-option" id="opt-available" onclick="selectOption('connect','available')" style="border-color:var(--success); color:var(--success);">
+              &#x2714; Agent Available
+            </button>
+            <button class="flow-option" id="opt-busy" onclick="selectOption('connect','busy')" style="border-color:var(--warning); color:var(--warning);">
+              &#x23f3; Agent Busy
+            </button>
+          </div>
+        </div>
+
+        <!-- Callback fallback -->
+        <div class="flow-connector" id="conn-5" style="display:none;"></div>
+        <div class="flow-node action" id="node-callback" style="display:none;">
+          <div class="node-step-label" style="color:var(--warning);">Fallback &mdash; Busy State</div>
+          <div class="node-title">Schedule Callback</div>
+          <div class="node-sub">Added to callback queue &mdash; BDC calls back within 15 min. Escalates to 2nd agent if missed.</div>
+        </div>
+
+        <!-- Final: success -->
+        <div class="flow-connector connect-path" id="conn-final" style="display:none;"></div>
+        <div class="flow-node connect" id="node-success" style="display:none;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:28px;">&#x2705;</span>
+            <div>
+              <div style="font-size:14px; font-weight:700; color:var(--success);">Lead Qualified &amp; Created</div>
+              <div style="font-size:12px; color:var(--gray-600); margin-top:2px;">All 9 data fields captured. Assigned to sales rep automatically.</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="flow-reset-btn" onclick="resetFlow()">&#x21ba; Reset Flow</button>
+
+      </div><!-- /flow-canvas -->
+    </div>
+  </div>
+
+  <!-- ==================== SCRIPTS TAB ==================== -->
+  <div id="tab-scripts" class="tab-panel">
+    <div class="page-content">
+
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="lang-btn-kn" onclick="switchLang('kn')">&#x1f1ee;&#x1f1f3; Kannada</button>
+        <button class="lang-btn" id="lang-btn-en" onclick="switchLang('en')">&#x1f1ec;&#x1f1e7; English</button>
+      </div>
+
+      <!-- KANNADA SCRIPT -->
+      <div id="script-kn" class="script-panel active">
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">0</div>
+            <div class="script-step-title">Opening Greeting</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Namaskara! Bharath Cycle Hub ge swagatha. Daya madi nimma bhasheyanu arisiri &mdash; Kannada ge ondannu, English ge eradannu press madi."</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">1</div>
+            <div class="script-step-title">Location Check</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Neevu Bangalore nalli iddeera? Hauda aadare ondannu, Illandishire aadare eradannu press madi."</div>
+            <div class="script-filter-note">&#x26a0; If Press 2: "Namma store Bangalore nalli iruva karana, neevu visit madbahudhaadare khushi aagirtheevi. Nimma number ge store vishaya WA message pathisthevi." &mdash; Call ends, auto-WA sent.</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">2</div>
+            <div class="script-step-title">Age Check</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Cycle yaroo upayoga padisuttaare? 12 varsha mattu melina vyaktige ondannu, 12 kke kammi makkaligu eradannu press madi."</div>
+            <div class="script-filter-note">&#x26a0; If Press 2: "BCH Toyz nimma makkaligaagi vishesavada cycle hondide! Bele pattiyanu WA mele pathisthevi." &mdash; Call ends, kids catalogue WA sent.</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">3</div>
+            <div class="script-step-title">Interest Selection</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Sari! Nimma aasaktiya vishayavanu heliri:"</div>
+            <div class="script-options-label">Options</div>
+            <div class="script-option-row"><span class="script-key">1</span> Electric Bicycle &mdash; Rs.20K matthu melina</div>
+            <div class="script-option-row"><span class="script-key">2</span> Gear Cycle &mdash; Rs.10K matthu melina</div>
+            <div class="script-option-row"><span class="script-key">3</span> Kids / Teen Cycle &mdash; Rs.5K matthu melina</div>
+            <div class="script-option-row"><span class="script-key">4</span> Second Hand Cycle &mdash; Rs.8K matthu melina</div>
+            <div class="script-option-row"><span class="script-key">5</span> Cycle Service / Repair</div>
+            <div class="script-option-row"><span class="script-key">6</span> Bere vishaya</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">4</div>
+            <div class="script-step-title">Agent Connection</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Dhanyavaadagalu! Nimmannu namma expert BDC ejamantige connect maduttheevi. Kshana thadeyiri..."</div>
+            <div class="script-options-label">If Busy</div>
+            <div class="script-option-row" style="color:var(--warning);">&#x23f3; "Kshamisi, ella agents iga busy aagide. Nimma hesaru mathu number save maadi, 15 nimishada olage callback maaduttevi."</div>
+          </div>
+        </div>
+
+      </div><!-- /script-kn -->
+
+      <!-- ENGLISH SCRIPT -->
+      <div id="script-en" class="script-panel">
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">0</div>
+            <div class="script-step-title">Opening Greeting</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Welcome to Bharath Cycle Hub! Please select your language &mdash; press 1 for Kannada, press 2 for English."</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">1</div>
+            <div class="script-step-title">Location Check</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Are you calling from Bangalore? Press 1 for Yes, press 2 if you are outside Bangalore."</div>
+            <div class="script-filter-note">&#x26a0; If Press 2: "Our store is located in Bangalore and we'd love to have you visit! We'll send you our store details and current offers on WhatsApp right away." &mdash; Call ends, auto-WA sent.</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">2</div>
+            <div class="script-step-title">Age Check</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Who will be riding the cycle? Press 1 if the rider is 12 years or older, press 2 for a child under 12."</div>
+            <div class="script-filter-note">&#x26a0; If Press 2: "BCH Toyz has a wonderful selection just for young riders! We'll send you our kids' cycle catalogue with pricing on WhatsApp now." &mdash; Call ends, kids catalogue WA sent.</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">3</div>
+            <div class="script-step-title">Interest Selection</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Great! Please tell us what you are looking for today:"</div>
+            <div class="script-options-label">Options</div>
+            <div class="script-option-row"><span class="script-key">1</span> Electric Bicycles &mdash; from Rs.20,000</div>
+            <div class="script-option-row"><span class="script-key">2</span> Gear Cycles &mdash; from Rs.10,000</div>
+            <div class="script-option-row"><span class="script-key">3</span> Kids / Teen Cycles &mdash; from Rs.5,000</div>
+            <div class="script-option-row"><span class="script-key">4</span> Second Hand Cycles &mdash; from Rs.8,000</div>
+            <div class="script-option-row"><span class="script-key">5</span> Cycle Servicing or Repair</div>
+            <div class="script-option-row"><span class="script-key">6</span> Something else</div>
+          </div>
+        </div>
+
+        <div class="script-step-card">
+          <div class="script-step-header">
+            <div class="script-step-num">4</div>
+            <div class="script-step-title">Agent Connection</div>
+          </div>
+          <div class="script-step-body">
+            <div class="script-text">"Thank you! We are connecting you to one of our expert advisors right now. Please hold for a moment..."</div>
+            <div class="script-options-label">If Busy</div>
+            <div class="script-option-row" style="color:var(--warning);">&#x23f3; "We're sorry, all our advisors are currently with customers. We have saved your number and will call you back within 15 minutes."</div>
+          </div>
+        </div>
+
+      </div><!-- /script-en -->
+
+      <div style="padding:8px 12px 0;">
+        <div class="alert alert-info">&#x2139; Scripts are configured in CallerDesk admin. Kannada is set as default language (Press 1). Both scripts run identically with language-appropriate audio.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== IMPACT TAB ==================== -->
+  <div id="tab-impact" class="tab-panel">
+    <div class="page-content">
+
+      <!-- Hero stat -->
+      <div class="impact-hero">
+        <div class="big-num">63%</div>
+        <div class="big-label">Calls Auto-Filtered by IVR</div>
+        <div class="big-sub">No human effort required &mdash; fully automated</div>
+      </div>
+
+      <!-- Stat grid -->
+      <div class="stat-grid cols-3" style="margin-top:0;">
+        <div class="stat-box">
+          <div class="stat-number danger">55%</div>
+          <div class="stat-label">Outside BLR</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number warning">17%</div>
+          <div class="stat-label">Kids U12</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number success">28%</div>
+          <div class="stat-label">Qualified</div>
+        </div>
+      </div>
+
+      <!-- Bar chart -->
+      <div class="card" style="margin-top:4px;">
+        <div class="card-header">
+          <span class="card-title">Call Distribution Breakdown</span>
+          <span style="font-size:11px; color:var(--gray-500);">Typical day &mdash; 112 calls</span>
+        </div>
+
+        <div class="bar-chart-row">
+          <div class="bar-label">Total Calls</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:100%; background:var(--primary);">112</div>
+          </div>
+          <div class="bar-pct">100%</div>
+        </div>
+
+        <div class="bar-chart-row">
+          <div class="bar-label" style="color:var(--danger);">Outside BLR</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:55%; background:var(--danger);">62</div>
+          </div>
+          <div class="bar-pct" style="color:var(--danger);">55%</div>
+        </div>
+
+        <div class="bar-chart-row">
+          <div class="bar-label" style="color:var(--warning);">Kids U12</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:17%; background:var(--warning);">19</div>
+          </div>
+          <div class="bar-pct" style="color:var(--warning);">17%</div>
+        </div>
+
+        <div class="bar-chart-row">
+          <div class="bar-label">Missed/Other</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:6%; background:var(--gray-400);">7</div>
+          </div>
+          <div class="bar-pct">6%</div>
+        </div>
+
+        <div class="bar-chart-row">
+          <div class="bar-label" style="color:var(--success);">Qualified</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:22%; background:var(--success);">25</div>
+          </div>
+          <div class="bar-pct" style="color:var(--success);">22%</div>
+        </div>
+
+        <div style="padding:8px 0 2px; font-size:11px; color:var(--gray-500); border-top:1px solid var(--gray-100); margin-top:6px;">
+          Ranges vary by day: Outside BLR 50&ndash;60% &bull; Kids U12 15&ndash;20% &bull; Qualified 20&ndash;35%
+        </div>
+      </div>
+
+      <!-- Result card -->
+      <div class="result-card">
+        <div class="result-label">IVR Filtering Result</div>
+        <div class="result-value">Only 20&ndash;35%</div>
+        <div class="result-sub">of callers ever reach a human BDC agent</div>
+        <div style="margin-top:10px; font-size:12px; opacity:0.7;">The remaining 65&ndash;80% are served instantly by automation &mdash; no agent required</div>
+      </div>
+
+      <!-- Auto data capture table -->
+      <div style="padding:8px 12px 0;">
+        <div style="font-size:13px; font-weight:700; color:var(--gray-700); margin-bottom:6px;">Auto Data Capture</div>
+        <div class="zero-effort-badge">&#x26a1; ZERO human effort &mdash; 9 fields captured automatically</div>
+      </div>
+
+      <div class="capture-table-wrap">
+        <div class="capture-table-header">
+          <span>&#x1f4cb;</span> Fields Captured Per Caller
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">1</div>
+          <div class="capture-field">Phone Number</div>
+          <div class="capture-source">CallerDesk auto</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">2</div>
+          <div class="capture-field">Call Timestamp</div>
+          <div class="capture-source">CallerDesk auto</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">3</div>
+          <div class="capture-field">Source Profile</div>
+          <div class="capture-source">DID routing</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">4</div>
+          <div class="capture-field">Language Preference</div>
+          <div class="capture-source">Step 1 keypress</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">5</div>
+          <div class="capture-field">Location (BLR / Outside)</div>
+          <div class="capture-source">Step 2 keypress</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">6</div>
+          <div class="capture-field">Age Bracket (12+ / U12)</div>
+          <div class="capture-source">Step 3 keypress</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">7</div>
+          <div class="capture-field">Product Interest</div>
+          <div class="capture-source">Step 4 keypress</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">8</div>
+          <div class="capture-field">IVR Filter Status</div>
+          <div class="capture-source">Auto-classified</div>
+        </div>
+        <div class="capture-row">
+          <div class="capture-num">9</div>
+          <div class="capture-field">Call Recording URL</div>
+          <div class="capture-source">CallerDesk auto</div>
+        </div>
+      </div>
+
+      <!-- Automation triggered -->
+      <div class="card" style="margin-top:4px;">
+        <div class="card-header">
+          <span class="card-title">Auto-Actions Triggered</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--gray-100);">
+          <span style="font-size:18px;">&#x1f4ac;</span>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">Outside BLR caller</div>
+            <div style="font-size:11px; color:var(--gray-600);">Instant WhatsApp: store address + delivery inquiry form</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--success);">Immediate</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--gray-100);">
+          <span style="font-size:18px;">&#x1f4ac;</span>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">Kids U12 caller</div>
+            <div style="font-size:11px; color:var(--gray-600);">Instant WhatsApp: BCH Toyz kids pricing catalogue</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--success);">Immediate</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--gray-100);">
+          <span style="font-size:18px;">&#x1f514;</span>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">Qualified lead created</div>
+            <div style="font-size:11px; color:var(--gray-600);">Push notification to assigned salesperson</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--success);">Immediate</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding:6px 0;">
+          <span style="font-size:18px;">&#x1f514;</span>
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:600;">Agent busy / missed call</div>
+            <div style="font-size:11px; color:var(--gray-600);">Callback queue + BDC notification &mdash; escalates in 15 min</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--success);">Immediate</span>
+        </div>
+      </div>
+
+      <div style="text-align:center; padding: 16px 12px 8px; font-size:11px; color:var(--gray-500);">
+        IVR handles ~1,200+ calls/month with zero staffing cost for initial filtering
+      </div>
+
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    // ===== TAB SWITCHING =====
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // ===== LANGUAGE SCRIPT TOGGLE =====
+    function switchLang(lang) {
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.script-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('lang-btn-' + lang).classList.add('active');
+      document.getElementById('script-' + lang).classList.add('active');
+    }
+
+    // ===== FLOW STATE =====
+    const flowState = {
+      lang: null,
+      location: null,
+      age: null,
+      interest: null,
+      connect: null
+    };
+
+    // Track which steps are "unlocked"
+    const stepOrder = ['lang', 'location', 'age', 'interest', 'connect'];
+
+    function getStepIndex(step) {
+      return stepOrder.indexOf(step);
+    }
+
+    // ===== SELECT OPTION =====
+    function selectOption(step, value) {
+      flowState[step] = value;
+
+      // Animate connector above the step being chosen
+      animateConnector(step);
+
+      if (step === 'lang') {
+        // Highlight lang options
+        clearOptions(['opt-kannada', 'opt-english']);
+        const sel = value === 'kannada' ? 'opt-kannada' : 'opt-english';
+        document.getElementById(sel).classList.add('selected-primary');
+        dimOtherOptions(['opt-kannada', 'opt-english'], sel);
+        activateConnector('conn-1');
+        pulseNode('node-location');
+      }
+
+      if (step === 'location') {
+        clearOptions(['opt-bangalore', 'opt-outside']);
+        if (value === 'outside') {
+          document.getElementById('opt-outside').classList.add('selected-danger');
+          dimOtherOptions(['opt-bangalore', 'opt-outside'], 'opt-outside');
+          showFilterNode('filter-outside', 'conn-filter-outside');
+          // Grey out remaining steps
+          greyOutStep('conn-2');
+          greyOutStep('conn-3');
+          greyOutStep('conn-4');
+          greyOutStep('conn-5');
+        } else {
+          document.getElementById('opt-bangalore').classList.add('selected-primary');
+          dimOtherOptions(['opt-bangalore', 'opt-outside'], 'opt-bangalore');
+          hideFilterNode('filter-outside', 'conn-filter-outside');
+          activateConnector('conn-2');
+          pulseNode('node-age');
+        }
+      }
+
+      if (step === 'age') {
+        clearOptions(['opt-adult', 'opt-kid']);
+        if (value === 'kid') {
+          document.getElementById('opt-kid').classList.add('selected-danger');
+          dimOtherOptions(['opt-adult', 'opt-kid'], 'opt-kid');
+          showFilterNode('filter-kid', 'conn-filter-kid');
+          greyOutStep('conn-3');
+          greyOutStep('conn-4');
+          greyOutStep('conn-5');
+        } else {
+          document.getElementById('opt-adult').classList.add('selected-primary');
+          dimOtherOptions(['opt-adult', 'opt-kid'], 'opt-adult');
+          hideFilterNode('filter-kid', 'conn-filter-kid');
+          activateConnector('conn-3');
+          pulseNode('node-interest');
+        }
+      }
+
+      if (step === 'connect') {
+        clearOptions(['opt-available', 'opt-busy']);
+        if (value === 'busy') {
+          document.getElementById('opt-busy').classList.add('selected-warning');
+          dimOtherOptions(['opt-available', 'opt-busy'], 'opt-busy');
+          showCallbackNode();
+        } else {
+          document.getElementById('opt-available').classList.add('selected-success');
+          dimOtherOptions(['opt-available', 'opt-busy'], 'opt-available');
+          hideCallbackNode();
+          showSuccessNode();
+        }
+      }
+    }
+
+    // ===== SELECT INTEREST =====
+    function selectInterest(value) {
+      flowState.interest = value;
+
+      const interestIds = ['opt-electric','opt-gear','opt-kids','opt-secondhand','opt-service','opt-other'];
+      interestIds.forEach(id => {
+        document.getElementById(id).classList.remove('selected-primary', 'dimmed');
+      });
+
+      const selectedId = 'opt-' + value;
+      document.getElementById(selectedId).classList.add('selected-primary');
+      interestIds.forEach(id => {
+        if (id !== selectedId) document.getElementById(id).classList.add('dimmed');
+      });
+
+      activateConnector('conn-4');
+      pulseNode('node-connect');
+    }
+
+    // ===== CONNECTOR HELPERS =====
+    function activateConnector(connId) {
+      const el = document.getElementById(connId);
+      if (!el) return;
+      el.style.display = '';
+      el.classList.remove('filter-path', 'connect-path');
+      el.classList.add('active-path', 'animating');
+      setTimeout(() => el.classList.remove('animating'), 2500);
+    }
+
+    function animateConnector(step) {
+      const map = {
+        lang: 'conn-0',
+        location: 'conn-1',
+        age: 'conn-2',
+        interest: 'conn-3',
+        connect: 'conn-4'
+      };
+      const connId = map[step];
+      if (!connId) return;
+      const el = document.getElementById(connId);
+      if (!el) return;
+      el.classList.add('animating');
+      setTimeout(() => el.classList.remove('animating'), 2500);
+    }
+
+    function greyOutStep(connId) {
+      const el = document.getElementById(connId);
+      if (!el) return;
+      el.style.display = '';
+      el.classList.remove('active-path', 'connect-path');
+    }
+
+    // ===== NODE HELPERS =====
+    function pulseNode(nodeId) {
+      const el = document.getElementById(nodeId);
+      if (!el) return;
+      el.classList.add('just-activated');
+      setTimeout(() => el.classList.remove('just-activated'), 700);
+    }
+
+    function clearOptions(ids) {
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('selected-primary', 'selected-danger', 'selected-success', 'selected-warning', 'dimmed');
+      });
+    }
+
+    function dimOtherOptions(allIds, selectedId) {
+      allIds.forEach(id => {
+        if (id !== selectedId) document.getElementById(id).classList.add('dimmed');
+      });
+    }
+
+    // ===== FILTER NODES =====
+    function showFilterNode(nodeId, connId) {
+      const conn = document.getElementById(connId);
+      const node = document.getElementById(nodeId);
+      if (conn) {
+        conn.style.display = '';
+        conn.classList.add('animating');
+        setTimeout(() => conn.classList.remove('animating'), 2500);
+      }
+      if (node) {
+        node.style.display = '';
+        node.style.animation = 'none';
+        void node.offsetWidth;
+        node.style.animation = 'slideDown 0.3s ease';
+      }
+    }
+
+    function hideFilterNode(nodeId, connId) {
+      const conn = document.getElementById(connId);
+      const node = document.getElementById(nodeId);
+      if (conn) conn.style.display = 'none';
+      if (node) node.style.display = 'none';
+    }
+
+    // ===== CALLBACK / SUCCESS NODES =====
+    function showCallbackNode() {
+      const conn = document.getElementById('conn-5');
+      const node = document.getElementById('node-callback');
+      const finalConn = document.getElementById('conn-final');
+      const successNode = document.getElementById('node-success');
+      if (conn) conn.style.display = '';
+      if (node) node.style.display = '';
+      if (finalConn) finalConn.style.display = 'none';
+      if (successNode) successNode.style.display = 'none';
+      activateConnector('conn-5');
+      pulseNode('node-callback');
+    }
+
+    function hideCallbackNode() {
+      const conn = document.getElementById('conn-5');
+      const node = document.getElementById('node-callback');
+      if (conn) conn.style.display = 'none';
+      if (node) node.style.display = 'none';
+    }
+
+    function showSuccessNode() {
+      const finalConn = document.getElementById('conn-final');
+      const successNode = document.getElementById('node-success');
+      if (finalConn) {
+        finalConn.style.display = '';
+        finalConn.classList.add('animating');
+        setTimeout(() => finalConn.classList.remove('animating'), 2500);
+      }
+      if (successNode) {
+        successNode.style.display = '';
+        pulseNode('node-success');
+      }
+    }
+
+    // ===== RESET FLOW =====
+    function resetFlow() {
+      // Reset state
+      Object.keys(flowState).forEach(k => flowState[k] = null);
+
+      // Clear all option selections
+      document.querySelectorAll('.flow-option').forEach(el => {
+        el.classList.remove('selected-primary', 'selected-danger', 'selected-success', 'selected-warning', 'dimmed');
+      });
+      document.querySelectorAll('.interest-option').forEach(el => {
+        el.classList.remove('selected-primary', 'dimmed');
+      });
+
+      // Reset connectors
+      ['conn-0','conn-1','conn-2','conn-3','conn-4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('active-path', 'filter-path', 'connect-path', 'animating');
+          el.style.display = '';
+        }
+      });
+
+      // Hide filter nodes
+      hideFilterNode('filter-outside', 'conn-filter-outside');
+      hideFilterNode('filter-kid', 'conn-filter-kid');
+      hideCallbackNode();
+
+      // Hide success
+      const finalConn = document.getElementById('conn-final');
+      const successNode = document.getElementById('node-success');
+      if (finalConn) finalConn.style.display = 'none';
+      if (successNode) successNode.style.display = 'none';
+
+      // Scroll to top of flow
+      document.getElementById('node-incoming').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ===== ANIMATE BARS ON TAB SWITCH =====
+    function animateBars() {
+      // Already inline widths; CSS transition handles it
+    }
+
+    // Init: ensure filter nodes and final nodes are hidden
+    document.addEventListener('DOMContentLoaded', function() {
+      hideFilterNode('filter-outside', 'conn-filter-outside');
+      hideFilterNode('filter-kid', 'conn-filter-kid');
+      document.getElementById('conn-5').style.display = 'none';
+      document.getElementById('node-callback').style.display = 'none';
+      document.getElementById('conn-final').style.display = 'none';
+      document.getElementById('node-success').style.display = 'none';
+    });
+  </script>
+
+</body>
+</html>

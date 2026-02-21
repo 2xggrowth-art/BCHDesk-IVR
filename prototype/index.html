@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>BCH Lead Management System</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .home-hero {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .home-hero h1 { font-size: 22px; margin-bottom: 4px; }
+    .home-hero p { font-size: 13px; opacity: 0.85; }
+    .home-logo {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); margin: 0 auto 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 16px 12px;
+    }
+    .role-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 16px 12px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      color: var(--gray-900);
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .role-card:active { transform: scale(0.96); border-color: var(--primary); }
+    .role-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .role-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .role-desc { font-size: 11px; color: var(--gray-600); }
+    .module-list { padding: 0 12px 20px; }
+    .module-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      color: var(--gray-900);
+      transition: all 0.2s;
+    }
+    .module-item:active { transform: scale(0.98); background: var(--gray-50); }
+    .module-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .module-icon.blue { background: var(--primary-light); }
+    .module-icon.green { background: var(--success-light); }
+    .module-icon.orange { background: var(--warning-light); }
+    .module-icon.red { background: var(--danger-light); }
+    .module-icon.purple { background: var(--purple-light); }
+    .module-info { flex: 1; }
+    .module-name { font-size: 14px; font-weight: 600; }
+    .module-subdesc { font-size: 11px; color: var(--gray-600); margin-top: 1px; }
+    .module-arrow { color: var(--gray-400); font-size: 18px; }
+    .section-header {
+      font-size: 12px; font-weight: 700; color: var(--gray-600);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 16px 16px 8px;
+    }
+    .live-stat-bar {
+      display: flex;
+      justify-content: space-around;
+      background: var(--white);
+      margin: 0 12px;
+      border-radius: var(--radius-md);
+      padding: 12px 8px;
+      box-shadow: var(--shadow-sm);
+    }
+    .live-item { text-align: center; }
+    .live-num { font-size: 18px; font-weight: 700; }
+    .live-label { font-size: 10px; color: var(--gray-600); }
+  </style>
+</head>
+<body>
+  <!-- Hero -->
+  <div class="home-hero">
+    <div class="home-logo">&#x1f6b2;</div>
+    <h1>BCH Lead Management</h1>
+    <p>Bharath Cycle Hub &middot; Prototype v1.0</p>
+  </div>
+
+  <!-- Live Stats (populated from data.js) -->
+  <div style="padding: 12px 0 0;">
+    <div class="live-stat-bar">
+      <div class="live-item">
+        <div class="live-num" id="stat-calls" style="color:var(--primary)">--</div>
+        <div class="live-label">Calls Today</div>
+      </div>
+      <div class="live-item">
+        <div class="live-num" id="stat-qualified" style="color:var(--success)">--</div>
+        <div class="live-label">Qualified</div>
+      </div>
+      <div class="live-item">
+        <div class="live-num" id="stat-walkins" style="color:var(--warning)">--</div>
+        <div class="live-label">Walk-ins</div>
+      </div>
+      <div class="live-item">
+        <div class="live-num" id="stat-revenue" style="color:var(--success)">--</div>
+        <div class="live-label">Revenue</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Selector -->
+  <div class="section-header">Login As</div>
+  <div class="role-grid">
+    <a href="bdc.html" class="role-card">
+      <span class="role-icon">&#x1f4de;</span>
+      <div class="role-name">BDC Agent</div>
+      <div class="role-desc">Anushka / Meera</div>
+    </a>
+    <a href="sales.html" class="role-card">
+      <span class="role-icon">&#x1f6cd;</span>
+      <div class="role-name">Sales Rep</div>
+      <div class="role-desc">Suma, Sunil, Abhi...</div>
+    </a>
+    <a href="manager.html" class="role-card">
+      <span class="role-icon">&#x1f4ca;</span>
+      <div class="role-name">Manager</div>
+      <div class="role-desc">Ibrahim</div>
+    </a>
+    <a href="walkin.html" class="role-card">
+      <span class="role-icon">&#x1f6b6;</span>
+      <div class="role-name">Walk-in</div>
+      <div class="role-desc">Store Entry</div>
+    </a>
+  </div>
+
+  <!-- All Modules -->
+  <div class="section-header">All Modules</div>
+  <div class="module-list">
+    <a href="ivr.html" class="module-item">
+      <div class="module-icon blue">&#x260e;</div>
+      <div class="module-info">
+        <div class="module-name">IVR Flow</div>
+        <div class="module-subdesc">CallerDesk IVR script visualization</div>
+      </div>
+      <span class="module-arrow">&#x203a;</span>
+    </a>
+    <a href="bdc.html" class="module-item">
+      <div class="module-icon green">&#x1f4de;</div>
+      <div class="module-info">
+        <div class="module-name">BDC Agent Dashboard</div>
+        <div class="module-subdesc">Incoming calls, qualification, callbacks</div>
+      </div>
+      <span class="module-arrow">&#x203a;</span>
+    </a>
+    <a href="sales.html" class="module-item">
+      <div class="module-icon orange">&#x1f6cd;</div>
+      <div class="module-info">
+        <div class="module-name">Sales Rep App</div>
+        <div class="module-subdesc">My leads, follow-ups, outcome logging</div>
+      </div>
+      <span class="module-arrow">&#x203a;</span>
+    </a>
+    <a href="walkin.html" class="module-item">
+      <div class="module-icon purple">&#x1f6b6;</div>
+      <div class="module-info">
+        <div class="module-name">Walk-In Module</div>
+        <div class="module-subdesc">Store visitor tracking & capture</div>
+      </div>
+      <span class="module-arrow">&#x203a;</span>
+    </a>
+    <a href="manager.html" class="module-item">
+      <div class="module-icon red">&#x1f4ca;</div>
+      <div class="module-info">
+        <div class="module-name">Manager Dashboard</div>
+        <div class="module-subdesc">Live metrics, pipeline, performance</div>
+      </div>
+      <span class="module-arrow">&#x203a;</span>
+    </a>
+    <a href="reports.html" class="module-item">
+      <div class="module-icon blue">&#x1f4c8;</div>
+      <div class="module-info">
+        <div class="module-name">Reports & Analytics</div>
+        <div class="module-subdesc">Content ROI, scorecard, lost deals</div>
+      </div>
+      <span class="module-arrow">&#x203a;</span>
+    </a>
+    <a href="automation.html" class="module-item">
+      <div class="module-icon green">&#x26a1;</div>
+      <div class="module-info">
+        <div class="module-name">Automation Engine</div>
+        <div class="module-subdesc">18 auto-actions, escalation chain</div>
+      </div>
+      <span class="module-arrow">&#x203a;</span>
+    </a>
+  </div>
+
+  <div style="text-align:center; padding: 10px 0 30px; font-size:11px; color:var(--gray-500);">
+    BCH Lead Management System &middot; 2XG Build<br>
+    Feb 2026 &middot; Prototype v1.0
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var s = BCH.todayStats;
+      document.getElementById('stat-calls').textContent = s.totalCalls;
+      document.getElementById('stat-qualified').textContent = s.leadsQualified;
+      document.getElementById('stat-walkins').textContent = s.walkInsTotal;
+      document.getElementById('stat-revenue').textContent = formatRupees(s.revenueTotal);
+    });
+  </script>
+</body>
+</html>

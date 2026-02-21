@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Sales Rep - BCH Lead Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ===== PAGE-SPECIFIC STYLES ===== */
+
+    /* Alert cards with arrow affordance */
+    .alert-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      margin: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .alert-card:active { transform: scale(0.98); }
+    .alert-card-left { display: flex; align-items: center; gap: 10px; }
+    .alert-card-icon { font-size: 18px; }
+    .alert-card-arrow { font-size: 16px; opacity: 0.6; }
+
+    /* Pipeline strip */
+    .pipeline-strip {
+      display: flex;
+      gap: 0;
+      margin: 8px 12px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .pipeline-item {
+      flex: 1;
+      background: var(--white);
+      padding: 10px 6px;
+      text-align: center;
+      border-right: 1px solid var(--gray-100);
+      position: relative;
+    }
+    .pipeline-item:last-child { border-right: none; }
+    .pipeline-item-num {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+    .pipeline-item-label {
+      font-size: 10px;
+      color: var(--gray-600);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    /* Monthly stats card */
+    .stats-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin: 8px 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--gray-100);
+      font-size: 13px;
+    }
+    .stats-row:last-child { border-bottom: none; }
+    .stats-row-label { color: var(--gray-700); }
+    .stats-row-value { font-weight: 700; color: var(--gray-900); }
+    .stats-row-value .pct {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--gray-500);
+      margin-left: 4px;
+    }
+    .stats-highlight { color: var(--success) !important; }
+
+    /* Lead detail header */
+    .detail-header {
+      background: var(--white);
+      padding: 16px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .detail-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+    .detail-phone {
+      font-size: 13px;
+      color: var(--gray-600);
+      margin-top: 2px;
+    }
+    .detail-stage-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      background: var(--primary-light);
+      color: var(--primary);
+      text-align: center;
+    }
+
+    /* Info grid for lead detail */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--gray-200);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin: 8px 12px;
+    }
+    .info-cell {
+      background: var(--white);
+      padding: 10px 12px;
+    }
+    .info-cell-label {
+      font-size: 10px;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .info-cell-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+    .info-cell.full-width {
+      grid-column: 1 / -1;
+    }
+
+    /* Timeline */
+    .timeline {
+      padding: 0 16px;
+      margin: 4px 0;
+    }
+    .timeline-item {
+      display: flex;
+      gap: 10px;
+      padding-bottom: 14px;
+      position: relative;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 26px;
+      bottom: 0;
+      width: 2px;
+      background: var(--gray-200);
+    }
+    .timeline-item:last-child::before { display: none; }
+    .timeline-dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .timeline-dot.call { background: var(--primary-light); }
+    .timeline-dot.whatsapp { background: var(--success-light); }
+    .timeline-dot.system { background: var(--gray-100); }
+    .timeline-dot.visit { background: var(--warning-light); }
+    .timeline-body { flex: 1; padding-top: 4px; }
+    .timeline-action {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .timeline-note {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-top: 2px;
+    }
+    .timeline-time {
+      font-size: 11px;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+
+    /* Action section */
+    .action-section {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      margin: 8px 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .action-section-header {
+      background: var(--gray-50);
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .action-section-body { padding: 12px 14px; }
+
+    /* Call buttons row */
+    .call-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 8px 12px;
+    }
+    .btn-call {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 12px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      gap: 4px;
+    }
+    .btn-call:active { transform: scale(0.96); }
+    .btn-call-icon { font-size: 22px; }
+    .btn-call-text { font-size: 13px; }
+    .btn-call-sub { font-size: 10px; opacity: 0.8; font-weight: 500; }
+    .btn-call.primary {
+      background: var(--primary);
+      color: white;
+      grid-column: 1 / -1;
+    }
+    .btn-call.whatsapp { background: #25d366; color: white; }
+    .btn-call.schedule { background: var(--warning-light); color: var(--warning); }
+
+    /* After-call outcome chips */
+    .outcome-chips .chip-group { gap: 6px; }
+    .outcome-chips .chip {
+      font-size: 12px;
+      padding: 7px 12px;
+    }
+
+    /* Follow-up date input */
+    .date-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .date-input-row input[type="date"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--gray-800);
+      background: var(--white);
+      outline: none;
+    }
+    .date-input-row input[type="date"]:focus {
+      border-color: var(--primary);
+    }
+
+    /* Walk-in form */
+    .walkin-form {
+      padding: 0 12px 12px;
+    }
+    .walkin-divider {
+      height: 8px;
+      background: var(--gray-100);
+      margin: 16px -12px;
+    }
+    .phone-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      color: var(--gray-800);
+      background: var(--white);
+      outline: none;
+      margin-top: 4px;
+    }
+    .phone-input:focus { border-color: var(--primary); }
+    .phone-input::placeholder { color: var(--gray-400); font-size: 14px; }
+
+    /* Visit alert */
+    .visit-alert-card {
+      background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 18px 16px;
+      margin: 12px 12px 8px;
+      box-shadow: var(--shadow-md);
+    }
+    .visit-alert-name {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .visit-alert-sub {
+      font-size: 12px;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+    .visit-alert-match {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border-radius: var(--radius-full);
+      padding: 4px 10px;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    /* Lead history bullets */
+    .history-list {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 0 12px 8px;
+      box-shadow: var(--shadow-sm);
+    }
+    .history-bullet {
+      display: flex;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 13px;
+      color: var(--gray-700);
+      align-items: flex-start;
+    }
+    .history-bullet::before {
+      content: '•';
+      color: var(--primary);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Visit outcome buttons */
+    .visit-outcomes {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 0 12px;
+      margin-top: 4px;
+    }
+    .visit-outcome-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .visit-outcome-btn:active { transform: scale(0.98); }
+    .visit-outcome-btn .vob-icon { font-size: 20px; }
+    .visit-outcome-btn .vob-sub { font-size: 11px; font-weight: 400; opacity: 0.7; display: block; margin-top: 1px; }
+    .vob-purchased { background: var(--success); color: white; }
+    .vob-lost { background: var(--danger-light); color: var(--danger); }
+    .vob-followup { background: var(--warning-light); color: var(--warning); }
+
+    /* Invoice input inline */
+    .invoice-input-wrap {
+      display: none;
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 8px 12px;
+      box-shadow: var(--shadow-sm);
+      gap: 8px;
+      align-items: center;
+    }
+    .invoice-input-wrap.visible { display: flex; }
+    .invoice-input-wrap input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      outline: none;
+    }
+    .invoice-input-wrap input:focus { border-color: var(--success); }
+
+    /* Score classes on lead detail */
+    .detail-score-veryhot { background: var(--danger-light); color: var(--danger); }
+    .detail-score-hot { background: var(--warning-light); color: var(--warning); }
+    .detail-score-warm { background: #fef7e0; color: #b06000; }
+    .detail-score-cold { background: var(--gray-100); color: var(--gray-600); }
+
+    /* Assigned row in visit tab */
+    .assigned-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 0 12px 8px;
+      box-shadow: var(--shadow-sm);
+      font-size: 13px;
+      color: var(--gray-700);
+    }
+    .assigned-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Mark visited button */
+    .mark-visited-wrap {
+      padding: 0 12px;
+      margin-bottom: 16px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-500);
+    }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state-text { font-size: 14px; }
+
+    /* Scrollable tab content */
+    .tab-scroll {
+      padding-bottom: 80px;
+    }
+
+    /* Lead count badge on tab */
+    .tab-badge {
+      display: inline-block;
+      background: var(--danger);
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 8px;
+      margin-left: 4px;
+      vertical-align: super;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Visited mark state */
+    .visited-banner {
+      background: var(--success);
+      color: white;
+      text-align: center;
+      padding: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: var(--radius-md);
+      margin: 0 12px 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== TOP BAR ===== -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Back to home">&#8592;</button>
+      <div>
+        <h1>Suma</h1>
+        <div class="subtitle">Electric Cycles &bull; Sales Rep</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <span style="font-size:12px;opacity:0.85;">Feb 21</span>
+      <span class="badge-count" title="Urgent leads">3</span>
+    </div>
+  </div>
+
+  <!-- ===== TAB NAV ===== -->
+  <nav class="tab-nav" role="tablist" aria-label="Sales app tabs">
+    <button class="tab-btn active" data-tab="tab-leads" onclick="switchTab('tab-leads'); setActiveNav(0);" role="tab" aria-selected="true">
+      My Leads <span class="tab-badge" id="leads-count-badge">8</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-detail" onclick="switchTab('tab-detail'); setActiveNav(1);" role="tab" aria-selected="false">
+      Lead Detail
+    </button>
+    <button class="tab-btn" data-tab="tab-walkin" onclick="switchTab('tab-walkin'); setActiveNav(2);" role="tab" aria-selected="false">
+      Walk-in
+    </button>
+    <button class="tab-btn" data-tab="tab-visit" onclick="switchTab('tab-visit'); setActiveNav(3);" role="tab" aria-selected="false">
+      Visit
+    </button>
+  </nav>
+
+  <!-- ===================================================
+       TAB 1 - MY LEADS
+  ==================================================== -->
+  <div id="tab-leads" class="tab-panel active" role="tabpanel">
+    <div class="tab-scroll">
+
+      <!-- Alert cards -->
+      <div style="padding-top:10px;">
+        <div class="alert-card alert-danger" onclick="scrollToUrgent()" role="button" tabindex="0">
+          <div class="alert-card-left">
+            <span class="alert-card-icon">&#128680;</span>
+            <div>
+              <div>3 URGENT &mdash; Action needed NOW</div>
+              <div style="font-size:11px;font-weight:400;opacity:0.8;">Follow-ups overdue today</div>
+            </div>
+          </div>
+          <span class="alert-card-arrow">&#8250;</span>
+        </div>
+
+        <div class="alert-card alert-warning" onclick="scrollToFollowups()" role="button" tabindex="0">
+          <div class="alert-card-left">
+            <span class="alert-card-icon">&#9201;</span>
+            <div>
+              <div>5 Follow-ups due TODAY</div>
+              <div style="font-size:11px;font-weight:400;opacity:0.8;">Don't let these slip</div>
+            </div>
+          </div>
+          <span class="alert-card-arrow">&#8250;</span>
+        </div>
+
+        <div class="alert-card alert-info" onclick="scrollToNew()" role="button" tabindex="0">
+          <div class="alert-card-left">
+            <span class="alert-card-icon">&#127381;</span>
+            <div>
+              <div>2 New leads assigned</div>
+              <div style="font-size:11px;font-weight:400;opacity:0.8;">Assigned in the last 2 hours</div>
+            </div>
+          </div>
+          <span class="alert-card-arrow">&#8250;</span>
+        </div>
+      </div>
+
+      <!-- Pipeline Summary -->
+      <div class="section-title">My Pipeline</div>
+      <div class="pipeline-strip">
+        <div class="pipeline-item">
+          <div class="pipeline-item-num">4</div>
+          <div class="pipeline-item-label">New</div>
+        </div>
+        <div class="pipeline-item">
+          <div class="pipeline-item-num" style="color:var(--warning);">8</div>
+          <div class="pipeline-item-label">Following up</div>
+        </div>
+        <div class="pipeline-item">
+          <div class="pipeline-item-num" style="color:var(--danger);">3</div>
+          <div class="pipeline-item-label">Visit sched.</div>
+        </div>
+        <div class="pipeline-item">
+          <div class="pipeline-item-num" style="color:var(--success);">2</div>
+          <div class="pipeline-item-label">Visited</div>
+        </div>
+      </div>
+
+      <!-- Monthly Stats -->
+      <div class="section-title">This Month &mdash; My Stats</div>
+      <div class="stats-card">
+        <div class="stats-row">
+          <span class="stats-row-label">Leads received</span>
+          <span class="stats-row-value">45</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row-label">Contacted</span>
+          <span class="stats-row-value">38 <span class="pct">(84%)</span></span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row-label">Converted</span>
+          <span class="stats-row-value" style="color:var(--success);">12 <span class="pct" style="color:var(--gray-500);">(27%)</span></span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row-label">Revenue</span>
+          <span class="stats-row-value stats-highlight">Rs.4.8L</span>
+        </div>
+      </div>
+
+      <!-- Lead Cards List -->
+      <div class="section-title" id="leads-list-header">My Leads (Today)</div>
+      <div id="leads-list">
+        <!-- Populated by JS -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================
+       TAB 2 - LEAD DETAIL
+  ==================================================== -->
+  <div id="tab-detail" class="tab-panel" role="tabpanel">
+    <div class="tab-scroll">
+
+      <!-- Lead Header -->
+      <div class="detail-header">
+        <div>
+          <div class="detail-name" id="detail-name">Ravi Kumar</div>
+          <div class="detail-phone" id="detail-phone">&#128222; 9876543210</div>
+          <div style="margin-top:6px;">
+            <span class="score-badge hot" id="detail-score-badge">HOT</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div class="detail-stage-badge" id="detail-stage">Follow-up Active</div>
+          <div style="font-size:11px;color:var(--gray-500);margin-top:6px;" id="detail-source">Wattsonwheelz</div>
+          <div style="font-size:11px;color:var(--gray-500);margin-top:2px;" id="detail-area">Hebbal</div>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="info-cell-label">Interest</div>
+          <div class="info-cell-value" id="detail-interest">Electric</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Budget</div>
+          <div class="info-cell-value" id="detail-budget">35-50K</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">EMI</div>
+          <div class="info-cell-value" id="detail-emi">Yes - 999 offer</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Visit Intent</div>
+          <div class="info-cell-value" id="detail-visit-intent">This weekend</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Language</div>
+          <div class="info-cell-value" id="detail-language">Kannada</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Brand Interest</div>
+          <div class="info-cell-value" id="detail-brand">EMotorad Desire</div>
+        </div>
+        <div class="info-cell full-width">
+          <div class="info-cell-label">Call Notes</div>
+          <div class="info-cell-value" id="detail-notes" style="font-weight:500;font-size:12px;color:var(--gray-700);">Wants test ride &bull; Comparing with competitor</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">First Contact</div>
+          <div class="info-cell-value" id="detail-created" style="font-size:12px;">Feb 18, 10:23</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-cell-label">Last Contact</div>
+          <div class="info-cell-value" id="detail-last-contact" style="font-size:12px;">Feb 19, 14:15</div>
+        </div>
+      </div>
+
+      <!-- History Timeline -->
+      <div class="section-title">History</div>
+      <div class="timeline" id="detail-timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot whatsapp">&#128172;</div>
+          <div class="timeline-body">
+            <div class="timeline-action">Auto-WhatsApp sent</div>
+            <div class="timeline-note">Store location + offers</div>
+            <div class="timeline-time">Feb 18, 10:23 AM &bull; System</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot call">&#128222;</div>
+          <div class="timeline-body">
+            <div class="timeline-action">Called &mdash; Connected</div>
+            <div class="timeline-note">Wants test ride, comparing with competitor</div>
+            <div class="timeline-time">Feb 18, 11:05 AM &bull; Suma</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot system">&#128203;</div>
+          <div class="timeline-body">
+            <div class="timeline-action">Score updated: Hot</div>
+            <div class="timeline-note">Visit intent: This weekend</div>
+            <div class="timeline-time">Feb 18, 11:06 AM &bull; System</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot call">&#128222;</div>
+          <div class="timeline-body">
+            <div class="timeline-action">Follow-up call</div>
+            <div class="timeline-note">Confirmed coming this weekend, EMI interested</div>
+            <div class="timeline-time">Feb 19, 2:15 PM &bull; Suma</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot whatsapp">&#128172;</div>
+          <div class="timeline-body">
+            <div class="timeline-action">WhatsApp: Visit reminder</div>
+            <div class="timeline-note">Auto-sent: directions + showroom hours</div>
+            <div class="timeline-time">Feb 20, 6:00 PM &bull; System</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="section-title">Actions</div>
+
+      <!-- Call / WhatsApp -->
+      <div class="call-buttons">
+        <button class="btn-call primary" id="btn-call-now" onclick="handleCallNow()" aria-label="Call lead now">
+          <span class="btn-call-icon ringing">&#128222;</span>
+          <span class="btn-call-text">CALL NOW</span>
+          <span class="btn-call-sub" id="call-number-display">9876543210</span>
+        </button>
+        <button class="btn-call whatsapp" onclick="handleWhatsApp()" aria-label="Send WhatsApp message">
+          <span class="btn-call-icon">&#128172;</span>
+          <span class="btn-call-text">WHATSAPP</span>
+          <span class="btn-call-sub">Send message</span>
+        </button>
+        <button class="btn-call schedule" onclick="handleScheduleVisit()" aria-label="Schedule store visit">
+          <span class="btn-call-icon">&#128197;</span>
+          <span class="btn-call-text">SCHEDULE VISIT</span>
+          <span class="btn-call-sub">Set appointment</span>
+        </button>
+      </div>
+
+      <!-- After Call Section -->
+      <div class="action-section">
+        <div class="action-section-header">&#9742; AFTER CALL &mdash; What happened?</div>
+        <div class="action-section-body">
+          <div class="form-label" style="margin-bottom:8px;">Outcome</div>
+          <div class="chip-group outcome-chips" id="outcome-chips" data-multi="false">
+            <div class="chip" data-value="coming-today" onclick="selectOutcome(this, 'Coming today')">Coming today</div>
+            <div class="chip" data-value="coming-tomorrow" onclick="selectOutcome(this, 'Coming tomorrow')">Coming tomorrow</div>
+            <div class="chip" data-value="coming-weekend" onclick="selectOutcome(this, 'Coming this weekend')">Coming this weekend</div>
+            <div class="chip" data-value="next-week" onclick="selectOutcome(this, 'Will come next week')">Will come next week</div>
+            <div class="chip" data-value="no-answer" onclick="selectOutcome(this, 'No answer - try again')">No answer &mdash; try again</div>
+            <div class="chip" data-value="family-approval" onclick="selectOutcome(this, 'Needs family approval')">Needs family approval</div>
+            <div class="chip" data-value="price-concern" onclick="selectOutcome(this, 'Price concern')">Price concern</div>
+            <div class="chip" data-value="visited-competitor" onclick="selectOutcome(this, 'Visited competitor')">Visited competitor</div>
+            <div class="chip" data-value="not-interested" onclick="selectOutcome(this, 'Not interested anymore')">Not interested anymore</div>
+            <div class="chip" data-value="wrong-number" onclick="selectOutcome(this, 'Wrong number/spam')">Wrong number / spam</div>
+          </div>
+
+          <div class="form-label" style="margin-top:14px;">Set follow-up date</div>
+          <div class="date-input-row">
+            <input type="date" id="followup-date" value="2026-02-22" aria-label="Follow-up date">
+            <button class="btn btn-primary btn-sm" onclick="saveFollowUp()">Save</button>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn btn-outline btn-full btn-sm" onclick="saveCallLog()" id="save-call-log-btn">
+              &#10003; LOG THIS CALL
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================
+       TAB 3 - WALK-IN QUICK ENTRY
+  ==================================================== -->
+  <div id="tab-walkin" class="tab-panel" role="tabpanel">
+    <div class="tab-scroll">
+      <div class="walkin-form">
+
+        <!-- Interest -->
+        <div class="form-section" style="margin-top:16px;">
+          <div class="form-label">INTEREST</div>
+          <div class="chip-group" id="walkin-interest-chips" data-multi="false">
+            <div class="chip" data-value="electric">Electric</div>
+            <div class="chip" data-value="gear">Gear</div>
+            <div class="chip" data-value="kids">Kids</div>
+            <div class="chip" data-value="second-hand">Second hand</div>
+            <div class="chip" data-value="service">Service</div>
+            <div class="chip" data-value="other">Other</div>
+          </div>
+        </div>
+
+        <!-- Assign To -->
+        <div class="form-section">
+          <div class="form-label">ASSIGN TO</div>
+          <div class="chip-group" id="walkin-assign-chips" data-multi="false">
+            <div class="chip selected" data-value="suma">Me (Suma)</div>
+            <div class="chip" data-value="nithin">Nithin</div>
+            <div class="chip" data-value="abhi">Abhi</div>
+            <div class="chip" data-value="sunil">Sunil</div>
+            <div class="chip" data-value="iqbal">Iqbal</div>
+            <div class="chip" data-value="baba">Baba</div>
+          </div>
+        </div>
+
+        <!-- Phone Number -->
+        <div class="form-section">
+          <div class="form-label">PHONE NUMBER <span style="font-weight:400;text-transform:none;color:var(--gray-400);">(optional)</span></div>
+          <input
+            type="tel"
+            class="phone-input"
+            id="walkin-phone"
+            placeholder="Enter mobile number"
+            maxlength="10"
+            inputmode="numeric"
+            pattern="[0-9]{10}"
+            aria-label="Customer phone number"
+          >
+        </div>
+
+        <!-- CAPTURE button -->
+        <button class="btn btn-primary btn-full btn-lg" style="margin-top:8px;" onclick="captureWalkin()" id="btn-capture">
+          &#128247; CAPTURE WALK-IN
+        </button>
+
+        <div class="walkin-divider"></div>
+
+        <!-- Walked Out Section -->
+        <div class="form-section">
+          <div class="form-label" style="color:var(--danger);">WALKED OUT &mdash; Capture reason</div>
+          <div class="chip-group" id="walkin-walkout-chips" data-multi="false">
+            <div class="chip" data-value="too-expensive">Too expensive</div>
+            <div class="chip" data-value="not-in-stock">Not in stock</div>
+            <div class="chip" data-value="family-approval">Needs family approval</div>
+            <div class="chip" data-value="just-looking">Just looking</div>
+            <div class="chip" data-value="will-come-back">Will come back</div>
+            <div class="chip" data-value="went-competitor">Went to competitor</div>
+            <div class="chip" data-value="emi-rejected">EMI rejected</div>
+            <div class="chip" data-value="wrong-size">Didn&rsquo;t find right size/color</div>
+          </div>
+        </div>
+
+        <button class="btn btn-full btn-lg" style="background:var(--danger);color:white;margin-top:4px;" onclick="captureWalkout()" id="btn-walkout">
+          &#128682; WALKED OUT &mdash; Save reason
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================
+       TAB 4 - CUSTOMER VISIT
+  ==================================================== -->
+  <div id="tab-visit" class="tab-panel" role="tabpanel">
+    <div class="tab-scroll">
+
+      <!-- Visit Alert -->
+      <div class="visit-alert-card">
+        <div style="font-size:12px;font-weight:600;opacity:0.85;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+          &#128680; Walk-in Detected
+        </div>
+        <div class="visit-alert-name">RAVI KUMAR</div>
+        <div class="visit-alert-sub">just walked in!</div>
+        <div class="visit-alert-match">&#128247; Matched by phone number at counter</div>
+      </div>
+
+      <!-- Assigned To -->
+      <div class="assigned-row">
+        <span>&#128100; Assigned to:</span>
+        <span class="assigned-name">SUMA</span>
+        <span style="font-size:11px;color:var(--gray-400);">&bull; Electric Cycles</span>
+      </div>
+
+      <!-- Lead History -->
+      <div class="section-title">Lead History</div>
+      <div class="history-list">
+        <div class="history-bullet">Called from Wattsonwheelz on Feb 18 &mdash; interested in EMotorad Desire</div>
+        <div class="history-bullet">Budget: 35&ndash;50K &bull; EMI: Yes (999 offer)</div>
+        <div class="history-bullet">Was comparing with competitor, wanted test ride</div>
+        <div class="history-bullet">Follow-up call done Feb 19 &mdash; confirmed visit this weekend</div>
+        <div class="history-bullet">WhatsApp reminder sent Feb 20</div>
+        <div class="history-bullet">Score: <strong style="color:var(--warning);">HOT</strong></div>
+      </div>
+
+      <!-- Mark as visited -->
+      <div class="mark-visited-wrap" id="mark-visited-section">
+        <button class="btn btn-primary btn-full btn-lg" onclick="markAsVisited()" id="btn-mark-visited">
+          &#128205; MARK AS VISITED
+        </button>
+      </div>
+
+      <!-- Success state (hidden until visited) -->
+      <div class="visited-banner hidden" id="visited-banner">
+        &#10003; Marked as Visited &mdash; Ravi Kumar
+      </div>
+
+      <!-- Outcome Buttons -->
+      <div class="section-title">After Interaction</div>
+      <div class="visit-outcomes">
+        <button class="visit-outcome-btn vob-purchased" onclick="handlePurchased()" id="btn-purchased">
+          <span class="vob-icon">&#127881;</span>
+          <div>
+            PURCHASED
+            <span class="vob-sub">Enter invoice number</span>
+          </div>
+        </button>
+
+        <button class="visit-outcome-btn vob-lost" onclick="handleDidntBuy()" id="btn-didnt-buy">
+          <span class="vob-icon">&#128532;</span>
+          <div>
+            DIDN&rsquo;T BUY &mdash; Capture reason
+            <span class="vob-sub">Log walk-out reason</span>
+          </div>
+        </button>
+
+        <button class="visit-outcome-btn vob-followup" onclick="handleWillComeBack()" id="btn-will-come-back">
+          <span class="vob-icon">&#128337;</span>
+          <div>
+            WILL COME BACK &mdash; Set follow-up
+            <span class="vob-sub">Schedule next touch point</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- Invoice input (shown after PURCHASED) -->
+      <div class="invoice-input-wrap" id="invoice-wrap">
+        <input type="text" id="invoice-number" placeholder="Invoice # e.g. BCH-2026-0848" aria-label="Invoice number">
+        <button class="btn btn-success btn-sm" onclick="saveInvoice()">Save</button>
+      </div>
+
+      <!-- Follow-up date for visit tab (shown after WILL COME BACK) -->
+      <div class="action-section hidden" id="visit-followup-section" style="margin-top:8px;">
+        <div class="action-section-header">Set Follow-up Date</div>
+        <div class="action-section-body">
+          <div class="date-input-row">
+            <input type="date" id="visit-followup-date" value="2026-02-25" aria-label="Follow-up date">
+            <button class="btn btn-warning btn-sm" onclick="saveVisitFollowUp()">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Walk-out reason chips for visit tab (shown after DIDN'T BUY) -->
+      <div class="action-section hidden" id="visit-walkout-section" style="margin-top:8px;">
+        <div class="action-section-header">Why didn&rsquo;t they buy?</div>
+        <div class="action-section-body">
+          <div class="chip-group" id="visit-walkout-chips" data-multi="false">
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">Too expensive</div>
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">Not in stock</div>
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">Needs family approval</div>
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">Just looking</div>
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">Will come back</div>
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">Went to competitor</div>
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">EMI rejected</div>
+            <div class="chip" onclick="this.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));this.classList.add('selected');">Didn't find right size/color</div>
+          </div>
+          <button class="btn btn-danger btn-full btn-sm" style="margin-top:10px;" onclick="saveWalkoutReason()">Save Walk-out Reason</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav" role="navigation" aria-label="Bottom navigation">
+    <button class="nav-item active" id="nav-0" onclick="switchTab('tab-leads'); setActiveNav(0);" aria-label="My Leads">
+      <span class="nav-icon">&#128101;</span>
+      <span>Leads</span>
+      <span class="nav-badge">8</span>
+    </button>
+    <button class="nav-item" id="nav-1" onclick="switchTab('tab-detail'); setActiveNav(1);" aria-label="Lead Detail">
+      <span class="nav-icon">&#128196;</span>
+      <span>Detail</span>
+    </button>
+    <button class="nav-item" id="nav-2" onclick="switchTab('tab-walkin'); setActiveNav(2);" aria-label="Walk-in">
+      <span class="nav-icon">&#128694;</span>
+      <span>Walk-in</span>
+    </button>
+    <button class="nav-item" id="nav-3" onclick="switchTab('tab-visit'); setActiveNav(3);" aria-label="Visit">
+      <span class="nav-icon">&#128205;</span>
+      <span>Visit</span>
+    </button>
+  </nav>
+
+  <!-- ===== DATA & SCRIPTS ===== -->
+  <script src="data.js"></script>
+  <script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    let currentLeadId = 'L001';
+    let activeNavIndex = 0;
+    let selectedOutcome = null;
+    let visitMarked = false;
+
+    // ============================================================
+    // BOTTOM NAV SYNC
+    // ============================================================
+    function setActiveNav(index) {
+      document.querySelectorAll('.nav-item').forEach((el, i) => {
+        el.classList.toggle('active', i === index);
+      });
+      activeNavIndex = index;
+    }
+
+    // Override switchTab to also sync nav
+    const _origSwitchTab = switchTab;
+    // We handle nav separately via setActiveNav, switchTab is from data.js
+
+    // ============================================================
+    // RENDER LEAD CARDS
+    // ============================================================
+    function renderLeadCards() {
+      const sumaLeads = BCH.leads.filter(l => l.assignedTo === 'suma');
+      const container = document.getElementById('leads-list');
+
+      if (sumaLeads.length === 0) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128220;</div><div class="empty-state-text">No leads assigned yet</div></div>`;
+        return;
+      }
+
+      // Sort: Very Hot first, then Hot, then by followUpDate
+      const scoreOrder = { 'Very Hot': 0, 'Hot': 1, 'Warm': 2, 'Cold': 3 };
+      sumaLeads.sort((a, b) => {
+        const sa = scoreOrder[a.score] ?? 9;
+        const sb = scoreOrder[b.score] ?? 9;
+        if (sa !== sb) return sa - sb;
+        // Then by followup date ascending
+        if (a.followUpDate && b.followUpDate) return a.followUpDate.localeCompare(b.followUpDate);
+        if (a.followUpDate) return -1;
+        if (b.followUpDate) return 1;
+        return 0;
+      });
+
+      container.innerHTML = sumaLeads.map(lead => {
+        const scoreClass = lead.score ? getScoreClass(lead.score) : 'cold';
+        const sourceName = getProfileName(lead.source);
+        const isUrgent = lead.followUpDate === '2026-02-21' && lead.score === 'Very Hot';
+        const isFollowupToday = lead.followUpDate === '2026-02-21';
+
+        return `
+          <div class="lead-card score-${scoreClass}" onclick="openLeadDetail('${lead.id}')" role="button" tabindex="0" aria-label="View ${lead.name || 'Unknown'} lead detail">
+            <div class="lead-card-top">
+              <div>
+                <div class="lead-name">${lead.name || '<span style="color:var(--gray-400)">Unknown</span>'}</div>
+                <div class="lead-interest">${lead.interest || '—'} &bull; ${lead.area || 'Area unknown'}</div>
+              </div>
+              <div style="text-align:right;">
+                ${lead.score ? `<span class="score-badge ${scoreClass}">${lead.score.toUpperCase()}</span>` : ''}
+                ${isFollowupToday ? `<div style="font-size:10px;color:var(--danger);font-weight:600;margin-top:4px;">&#9201; Today</div>` : ''}
+              </div>
+            </div>
+            <div class="lead-meta">
+              <span class="lead-tag tag-source">${sourceName}</span>
+              ${lead.budget ? `<span class="lead-tag tag-budget">${lead.budget}</span>` : ''}
+              ${lead.visitIntent ? `<span class="lead-tag tag-visit">${lead.visitIntent}</span>` : ''}
+              <span class="lead-tag tag-time">${timeAgo(lead.lastContact || lead.createdAt)}</span>
+            </div>
+            <div class="lead-footer">
+              <span>${lead.stage}</span>
+              <span>${lead.phone}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Update badge count
+      document.getElementById('leads-count-badge').textContent = sumaLeads.length;
+    }
+
+    // ============================================================
+    // OPEN LEAD DETAIL
+    // ============================================================
+    function openLeadDetail(leadId) {
+      const lead = BCH.leads.find(l => l.id === leadId);
+      if (!lead) return;
+
+      currentLeadId = leadId;
+      populateDetailTab(lead);
+
+      // Switch to detail tab
+      switchTab('tab-detail');
+      setActiveNav(1);
+    }
+
+    function populateDetailTab(lead) {
+      const scoreClass = lead.score ? getScoreClass(lead.score) : 'cold';
+
+      // Header
+      document.getElementById('detail-name').textContent = lead.name || 'Unknown';
+      document.getElementById('detail-phone').textContent = '\u260E ' + lead.phone;
+      document.getElementById('detail-source').textContent = getProfileName(lead.source);
+      document.getElementById('detail-area').textContent = lead.area || 'Area unknown';
+      document.getElementById('detail-stage').textContent = lead.stage;
+
+      // Score badge
+      const scoreBadge = document.getElementById('detail-score-badge');
+      scoreBadge.textContent = (lead.score || 'Unknown').toUpperCase();
+      scoreBadge.className = 'score-badge ' + scoreClass;
+
+      // Info grid
+      document.getElementById('detail-interest').textContent = lead.interest || '—';
+      document.getElementById('detail-budget').textContent = lead.budget || '—';
+      document.getElementById('detail-emi').textContent = lead.emi || '—';
+      document.getElementById('detail-visit-intent').textContent = lead.visitIntent || '—';
+      document.getElementById('detail-language').textContent = lead.language || '—';
+
+      const brandModel = [lead.brand, lead.model].filter(v => v && v !== 'None' && v !== 'Other').join(' ');
+      document.getElementById('detail-brand').textContent = brandModel || '—';
+
+      const notes = (lead.callNotes && lead.callNotes.length > 0)
+        ? lead.callNotes.join(' \u2022 ')
+        : 'No notes yet';
+      document.getElementById('detail-notes').textContent = notes;
+
+      // Dates
+      document.getElementById('detail-created').textContent = formatDate(lead.createdAt);
+      document.getElementById('detail-last-contact').textContent = lead.lastContact ? formatDate(lead.lastContact) : '—';
+
+      // Follow-up date
+      if (lead.followUpDate) {
+        document.getElementById('followup-date').value = lead.followUpDate;
+      }
+
+      // Call number display
+      document.getElementById('call-number-display').textContent = lead.phone;
+
+      // Reset outcome chips
+      document.querySelectorAll('#outcome-chips .chip').forEach(c => c.classList.remove('selected'));
+      selectedOutcome = null;
+
+      // Rebuild timeline for this lead
+      buildTimeline(lead);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function buildTimeline(lead) {
+      const container = document.getElementById('detail-timeline');
+      const entries = [];
+
+      // System: lead created
+      entries.push({
+        type: 'whatsapp',
+        icon: '\u{1F4AC}',
+        action: 'Auto-WhatsApp sent',
+        note: 'Store location + offers (auto)',
+        time: formatDate(lead.createdAt) + ' \u2022 System'
+      });
+
+      // First BDC call
+      if (lead.stage !== 'Lead Created') {
+        entries.push({
+          type: 'call',
+          icon: '\u{1F4DE}',
+          action: 'BDC Contacted',
+          note: 'Qualification call completed',
+          time: formatDate(lead.createdAt) + ' \u2022 BDC'
+        });
+      }
+
+      // Qualified
+      if (['Qualified', 'Follow-up Active', 'Visit Scheduled', 'Visit Done', 'Purchased'].includes(lead.stage)) {
+        entries.push({
+          type: 'system',
+          icon: '\u{1F4CB}',
+          action: 'Lead Qualified \u2014 Score: ' + (lead.score || 'Unscored'),
+          note: (lead.interest || '') + (lead.budget ? ' \u2022 Budget: ' + lead.budget : ''),
+          time: formatDate(lead.createdAt) + ' \u2022 System'
+        });
+      }
+
+      // Notes
+      if (lead.callNotes && lead.callNotes.length > 0) {
+        entries.push({
+          type: 'call',
+          icon: '\u{1F4DE}',
+          action: 'Follow-up call',
+          note: lead.callNotes.join(', '),
+          time: formatDate(lead.lastContact) + ' \u2022 Suma'
+        });
+      }
+
+      // Visit scheduled
+      if (['Visit Scheduled', 'Visit Done', 'Purchased'].includes(lead.stage)) {
+        entries.push({
+          type: 'visit',
+          icon: '\u{1F4CD}',
+          action: 'Visit scheduled',
+          note: lead.visitIntent || '',
+          time: formatDate(lead.lastContact) + ' \u2022 Suma'
+        });
+        entries.push({
+          type: 'whatsapp',
+          icon: '\u{1F4AC}',
+          action: 'Auto-WhatsApp: Visit reminder',
+          note: 'Sent directions + showroom hours',
+          time: 'Auto-sent \u2022 System'
+        });
+      }
+
+      // Purchased
+      if (lead.purchased && lead.invoiceNumber) {
+        entries.push({
+          type: 'system',
+          icon: '\u{1F389}',
+          action: 'Purchased \u2014 ' + lead.invoiceNumber,
+          note: lead.purchaseAmount ? formatRupees(lead.purchaseAmount) : '',
+          time: formatDate(lead.visitDate) + ' \u2022 Suma'
+        });
+      }
+
+      container.innerHTML = entries.map((e, i) => `
+        <div class="timeline-item">
+          <div class="timeline-dot ${e.type}">${e.icon}</div>
+          <div class="timeline-body">
+            <div class="timeline-action">${e.action}</div>
+            ${e.note ? `<div class="timeline-note">${e.note}</div>` : ''}
+            <div class="timeline-time">${e.time}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ============================================================
+    // OUTCOME CHIP SELECTION
+    // ============================================================
+    function selectOutcome(chip, value) {
+      document.querySelectorAll('#outcome-chips .chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      selectedOutcome = value;
+    }
+
+    // ============================================================
+    // SAVE FOLLOW-UP
+    // ============================================================
+    function saveFollowUp() {
+      const date = document.getElementById('followup-date').value;
+      if (!date) {
+        showToast('Please select a follow-up date', 'warning');
+        return;
+      }
+      const lead = BCH.leads.find(l => l.id === currentLeadId);
+      if (lead) lead.followUpDate = date;
+      showToast('Follow-up set for ' + date, 'success');
+    }
+
+    // ============================================================
+    // LOG CALL
+    // ============================================================
+    function saveCallLog() {
+      if (!selectedOutcome) {
+        showToast('Please select what happened after the call', 'warning');
+        return;
+      }
+      const lead = BCH.leads.find(l => l.id === currentLeadId);
+      if (lead) {
+        lead.lastContact = new Date().toISOString();
+        // Update stage based on outcome
+        if (selectedOutcome === 'Not interested anymore' || selectedOutcome === 'Wrong number/spam') {
+          lead.stage = 'Lost';
+        } else if (selectedOutcome === 'Coming today' || selectedOutcome === 'Coming tomorrow' || selectedOutcome === 'Coming this weekend') {
+          lead.stage = 'Visit Scheduled';
+          lead.visitIntent = selectedOutcome.replace('Coming ', '');
+        }
+      }
+      showToast('\u2713 Call logged: ' + selectedOutcome, 'success');
+      // Pulse the button
+      const btn = document.getElementById('save-call-log-btn');
+      btn.textContent = '\u2713 Logged!';
+      btn.style.background = 'var(--success)';
+      btn.style.color = 'white';
+      setTimeout(() => {
+        btn.textContent = '\u2713 LOG THIS CALL';
+        btn.style.background = '';
+        btn.style.color = '';
+      }, 2000);
+    }
+
+    // ============================================================
+    // CALL / WHATSAPP ACTIONS
+    // ============================================================
+    function handleCallNow() {
+      const lead = BCH.leads.find(l => l.id === currentLeadId);
+      if (!lead) return;
+      // In a real app this would use tel: protocol
+      showToast('\u{1F4DE} Calling ' + lead.phone + '...', 'info');
+      // Simulate: after 1.5s show "Call connected"
+      setTimeout(() => showToast('\u2714 Call connected to ' + (lead.name || lead.phone), 'success'), 1500);
+    }
+
+    function handleWhatsApp() {
+      const lead = BCH.leads.find(l => l.id === currentLeadId);
+      if (!lead) return;
+      const msg = encodeURIComponent('Hi ' + (lead.name || '') + ', this is Suma from Bharath Cycle Hub. Are you still interested in visiting us?');
+      showToast('\u{1F4AC} Opening WhatsApp for ' + lead.phone, 'success');
+      // In production: window.open('https://wa.me/91' + lead.phone + '?text=' + msg);
+    }
+
+    function handleScheduleVisit() {
+      const lead = BCH.leads.find(l => l.id === currentLeadId);
+      if (!lead) return;
+      showToast('\u{1F4C5} Opening schedule for ' + (lead.name || lead.phone), 'info');
+    }
+
+    // ============================================================
+    // WALK-IN ACTIONS
+    // ============================================================
+    function getSelectedChip(groupId) {
+      const group = document.getElementById(groupId);
+      if (!group) return null;
+      const selected = group.querySelector('.chip.selected');
+      return selected ? selected.dataset.value : null;
+    }
+
+    function captureWalkin() {
+      const interest = getSelectedChip('walkin-interest-chips');
+      const assignTo = getSelectedChip('walkin-assign-chips');
+      const phone = document.getElementById('walkin-phone').value.trim();
+
+      if (!interest) {
+        showToast('Please select customer interest', 'warning');
+        return;
+      }
+
+      const entry = {
+        id: 'W' + Date.now(),
+        phone: phone || null,
+        name: null,
+        fromLead: false,
+        interest: interest,
+        assignedTo: assignTo || 'suma',
+        outcome: null,
+        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      BCH.walkInsToday.push(entry);
+
+      showToast('\u2713 Walk-in captured! Assigned to ' + getStaffName(assignTo || 'suma'), 'success');
+
+      // Reset form
+      document.querySelectorAll('#walkin-interest-chips .chip').forEach(c => c.classList.remove('selected'));
+      document.getElementById('walkin-phone').value = '';
+
+      // Re-select "Me" for assign
+      document.querySelectorAll('#walkin-assign-chips .chip').forEach(c => c.classList.remove('selected'));
+      document.querySelector('#walkin-assign-chips .chip[data-value="suma"]').classList.add('selected');
+    }
+
+    function captureWalkout() {
+      const reason = getSelectedChip('walkin-walkout-chips');
+      if (!reason) {
+        showToast('Please select why they walked out', 'warning');
+        return;
+      }
+      const reasonLabel = document.querySelector('#walkin-walkout-chips .chip.selected').textContent;
+      showToast('\u{1F4CC} Walk-out logged: ' + reasonLabel, 'info');
+      document.querySelectorAll('#walkin-walkout-chips .chip').forEach(c => c.classList.remove('selected'));
+    }
+
+    // ============================================================
+    // VISIT TAB ACTIONS
+    // ============================================================
+    function markAsVisited() {
+      visitMarked = true;
+      document.getElementById('btn-mark-visited').classList.add('hidden');
+      document.getElementById('visited-banner').classList.remove('hidden');
+      showToast('\u{1F4CD} Ravi Kumar marked as visited!', 'success');
+
+      // Update lead in data
+      const lead = BCH.leads.find(l => l.id === 'L001');
+      if (lead) {
+        lead.stage = 'Visit Done';
+        lead.visitDate = '2026-02-21';
+      }
+    }
+
+    function handlePurchased() {
+      if (!visitMarked) {
+        showToast('Please mark as visited first', 'warning');
+        return;
+      }
+      const wrap = document.getElementById('invoice-wrap');
+      wrap.classList.toggle('visible');
+      document.getElementById('visit-walkout-section').classList.add('hidden');
+      document.getElementById('visit-followup-section').classList.add('hidden');
+      if (wrap.classList.contains('visible')) {
+        document.getElementById('invoice-number').focus();
+      }
+    }
+
+    function saveInvoice() {
+      const invoiceNum = document.getElementById('invoice-number').value.trim();
+      if (!invoiceNum) {
+        showToast('Please enter invoice number', 'warning');
+        return;
+      }
+      const lead = BCH.leads.find(l => l.id === 'L001');
+      if (lead) {
+        lead.stage = 'Purchased';
+        lead.purchased = true;
+        lead.invoiceNumber = invoiceNum;
+      }
+      document.getElementById('invoice-wrap').classList.remove('visible');
+      showToast('\u{1F389} Sale recorded! Invoice: ' + invoiceNum, 'success');
+    }
+
+    function handleDidntBuy() {
+      if (!visitMarked) {
+        showToast('Please mark as visited first', 'warning');
+        return;
+      }
+      const section = document.getElementById('visit-walkout-section');
+      section.classList.toggle('hidden');
+      document.getElementById('invoice-wrap').classList.remove('visible');
+      document.getElementById('visit-followup-section').classList.add('hidden');
+    }
+
+    function saveWalkoutReason() {
+      const selected = document.querySelector('#visit-walkout-chips .chip.selected');
+      if (!selected) {
+        showToast('Please select a reason', 'warning');
+        return;
+      }
+      showToast('\u{1F4CC} Walk-out reason saved: ' + selected.textContent, 'info');
+      document.getElementById('visit-walkout-section').classList.add('hidden');
+    }
+
+    function handleWillComeBack() {
+      if (!visitMarked) {
+        showToast('Please mark as visited first', 'warning');
+        return;
+      }
+      const section = document.getElementById('visit-followup-section');
+      section.classList.toggle('hidden');
+      document.getElementById('invoice-wrap').classList.remove('visible');
+      document.getElementById('visit-walkout-section').classList.add('hidden');
+    }
+
+    function saveVisitFollowUp() {
+      const date = document.getElementById('visit-followup-date').value;
+      if (!date) {
+        showToast('Please select a date', 'warning');
+        return;
+      }
+      const lead = BCH.leads.find(l => l.id === 'L001');
+      if (lead) {
+        lead.followUpDate = date;
+        lead.stage = 'Follow-up Active';
+      }
+      showToast('\u23F0 Follow-up set for ' + date, 'success');
+      document.getElementById('visit-followup-section').classList.add('hidden');
+    }
+
+    // ============================================================
+    // SCROLL HELPERS (alert card actions)
+    // ============================================================
+    function scrollToUrgent() {
+      document.getElementById('leads-list-header').scrollIntoView({ behavior: 'smooth' });
+      showToast('\u{1F6A8} Showing urgent leads at top', 'danger');
+    }
+    function scrollToFollowups() {
+      document.getElementById('leads-list-header').scrollIntoView({ behavior: 'smooth' });
+      showToast('\u23F1 Follow-ups due today highlighted', 'warning');
+    }
+    function scrollToNew() {
+      document.getElementById('leads-list-header').scrollIntoView({ behavior: 'smooth' });
+      showToast('\u2728 New leads at bottom of list', 'info');
+    }
+
+    // ============================================================
+    // KEYBOARD ACCESSIBILITY for lead cards
+    // ============================================================
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const target = e.target;
+        if (target.classList.contains('lead-card')) {
+          e.preventDefault();
+          target.click();
+        }
+      }
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    function init() {
+      // Render lead cards
+      renderLeadCards();
+
+      // Pre-fill detail tab with L001 (Ravi Kumar)
+      const raviLead = BCH.leads.find(l => l.id === 'L001');
+      if (raviLead) populateDetailTab(raviLead);
+
+      // Init chips from data.js (handles toggle behaviour)
+      initChips();
+
+      // Re-init walk-in chips specifically (since they are not controlled by initChips toggle alone)
+      // The chip onclick handlers are inline for walk-in, so single-select works via CSS class
+    }
+
+    init();
+  </script>
+</body>
+</html>

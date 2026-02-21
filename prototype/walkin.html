@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Walk-In Module - BCH</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ===== PAGE-SPECIFIC STYLES ===== */
+
+    /* Phone check row */
+    .phone-check-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .phone-check-row input {
+      flex: 1;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 16px; /* prevents iOS zoom */
+      color: var(--gray-900);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .phone-check-row input:focus {
+      border-color: var(--primary);
+    }
+    .phone-check-row input::placeholder {
+      color: var(--gray-400);
+      font-size: 14px;
+    }
+
+    /* Match result alert */
+    .match-result {
+      margin: 8px 0 0;
+      transition: all 0.3s;
+    }
+    .match-result.hidden { display: none !important; }
+
+    /* Alert inner layout */
+    .alert-match {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .alert-match .match-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .alert-match .match-detail {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    /* Section header inside card */
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+
+    /* Walk-in form card */
+    .entry-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 10px 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .entry-card + .entry-card {
+      margin-top: 0;
+    }
+
+    /* Outcome section (initially hidden) */
+    .outcome-section {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 10px 12px;
+      box-shadow: var(--shadow-sm);
+      border-top: 3px solid var(--primary);
+    }
+    .outcome-section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Conditional sub-sections */
+    .outcome-sub {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--gray-100);
+    }
+
+    /* Text input style (shared) */
+    .text-input {
+      width: 100%;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--gray-900);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.2s;
+      margin-top: 4px;
+    }
+    .text-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Divider with label */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 14px 0 10px;
+    }
+    .section-divider span {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--gray-200);
+    }
+
+    /* Stats bar (Tab 2) */
+    .stats-bar {
+      background: var(--primary);
+      color: white;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .stats-bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stats-bar-num {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .stats-bar-label {
+      font-size: 10px;
+      opacity: 0.85;
+    }
+
+    /* Filter chip strip */
+    .filter-strip {
+      display: flex;
+      gap: 6px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .filter-strip::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1.5px solid var(--gray-300);
+      background: var(--white);
+      color: var(--gray-700);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-chip.active {
+      background: var(--primary);
+      color: var(--white);
+      border-color: var(--primary);
+    }
+
+    /* Walk-in list card */
+    .walkin-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 6px 12px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--gray-300);
+      transition: all 0.2s;
+    }
+    .walkin-card:active {
+      transform: scale(0.98);
+      background: var(--gray-50);
+    }
+    .walkin-card.outcome-purchased { border-left-color: var(--success); }
+    .walkin-card.outcome-walkedout { border-left-color: var(--danger); }
+    .walkin-card.outcome-instore { border-left-color: var(--primary); }
+
+    .walkin-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    .walkin-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+    .walkin-time {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .walkin-interest {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-bottom: 6px;
+    }
+    .walkin-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+
+    /* Outcome badge */
+    .outcome-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .outcome-badge.purchased { background: var(--success-light); color: var(--success); }
+    .outcome-badge.walkedout { background: var(--danger-light); color: var(--danger); }
+    .outcome-badge.instore {
+      background: var(--primary-light); color: var(--primary);
+      animation: pulse 2s infinite;
+    }
+
+    /* Source badge */
+    .from-lead-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: var(--radius-full);
+      background: var(--purple-light);
+      color: var(--purple);
+    }
+
+    .interest-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      background: var(--gray-100);
+      color: var(--gray-700);
+      font-weight: 500;
+    }
+
+    .assignee-label {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+
+    /* Summary tab */
+    .summary-big-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 8px 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .summary-big-number {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .summary-big-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .summary-sub-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .summary-sub-box {
+      flex: 1;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .summary-sub-num {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+    .summary-sub-pct {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .summary-sub-label {
+      font-size: 10px;
+      color: var(--gray-600);
+      margin-top: 2px;
+    }
+
+    /* Purchase stats */
+    .purchase-row {
+      display: flex;
+      gap: 8px;
+      margin: 0 12px 0;
+    }
+    .purchase-card {
+      flex: 1;
+      border-radius: var(--radius-md);
+      padding: 14px 12px;
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+    .purchase-card.green { background: var(--success-light); }
+    .purchase-card.red { background: var(--danger-light); }
+    .purchase-num {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .purchase-card.green .purchase-num { color: var(--success); }
+    .purchase-card.red .purchase-num { color: var(--danger); }
+    .purchase-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .purchase-card.green .purchase-label { color: var(--success); }
+    .purchase-card.red .purchase-label { color: var(--danger); }
+    .purchase-sub {
+      font-size: 11px;
+      margin-top: 3px;
+    }
+    .purchase-card.green .purchase-sub { color: var(--success); opacity: 0.8; }
+    .purchase-card.red .purchase-sub { color: var(--danger); opacity: 0.8; }
+
+    /* Bar chart label width override for walkout reasons */
+    .bar-label-sm {
+      min-width: 105px;
+    }
+
+    /* Capture section */
+    .capture-stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .capture-fraction {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--success);
+    }
+    .capture-pct {
+      font-size: 13px;
+      color: var(--gray-600);
+      font-weight: 500;
+    }
+
+    /* Chip - danger variant for walkout */
+    .chip.selected-danger {
+      background: var(--danger);
+      color: var(--white);
+      border-color: var(--danger);
+    }
+
+    /* Bottom nav active indicator */
+    .bottom-nav .nav-item.active .nav-icon { transform: scale(1.1); }
+
+    /* Smooth show/hide for conditional sections */
+    .conditional-section {
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      max-height: 0;
+      opacity: 0;
+    }
+    .conditional-section.visible {
+      max-height: 400px;
+      opacity: 1;
+    }
+
+    /* Input group */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .input-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-500);
+    }
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 13px; }
+
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <button class="back-btn" onclick="window.location.href='index.html'" aria-label="Back">&#x2190;</button>
+      <div>
+        <h1>Walk-In Module</h1>
+        <div class="subtitle">Store visitor capture &amp; tracking</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <div style="text-align:right;">
+        <div style="font-size:12px;font-weight:700;" id="topbar-count">45 today</div>
+        <div style="font-size:10px;opacity:0.8;">walk-ins</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="tab-entry" onclick="switchWalkInTab('tab-entry')" role="tab">&#x2795; New Entry</button>
+    <button class="tab-btn" data-tab="tab-list" onclick="switchWalkInTab('tab-list')" role="tab">&#x1f4cb; Today's List</button>
+    <button class="tab-btn" data-tab="tab-summary" onclick="switchWalkInTab('tab-summary')" role="tab">&#x1f4ca; Summary</button>
+  </div>
+
+  <!-- ===================== TAB 1: NEW WALK-IN ENTRY ===================== -->
+  <div class="tab-panel active page-content" id="tab-entry">
+
+    <!-- Phone check -->
+    <div class="entry-card">
+      <label class="form-label">Check Phone Number</label>
+      <div class="phone-check-row">
+        <input
+          type="tel"
+          id="phone-input"
+          placeholder="Enter 10-digit mobile number"
+          maxlength="10"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          aria-label="Phone number"
+        >
+        <button class="btn btn-primary btn-sm" id="check-btn" onclick="checkPhone()" style="white-space:nowrap;padding:0 16px;">CHECK</button>
+      </div>
+
+      <!-- Match result -->
+      <div class="match-result hidden" id="match-result"></div>
+    </div>
+
+    <!-- Interest -->
+    <div class="entry-card">
+      <label class="form-label">Interest Category</label>
+      <div class="chip-group" id="interest-chips">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Assign To -->
+    <div class="entry-card">
+      <label class="form-label">Assign To</label>
+      <div class="chip-group" id="assign-chips">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Capture button -->
+    <div style="margin: 4px 12px 0;">
+      <button class="btn btn-primary btn-full btn-lg" onclick="captureWalkIn()" id="capture-btn">
+        &#x1f6b6; CAPTURE WALK-IN
+      </button>
+    </div>
+
+    <!-- Divider -->
+    <div style="margin: 18px 12px 0;">
+      <div class="section-divider"><span>After walk-in interaction</span></div>
+    </div>
+
+    <!-- Outcome section -->
+    <div class="outcome-section">
+      <div class="outcome-section-title">&#x1f3af; Log Outcome</div>
+
+      <label class="form-label">Outcome</label>
+      <div class="chip-group" id="outcome-chips">
+        <div class="chip" data-outcome="Purchased" onclick="selectOutcome(this, 'Purchased')">&#x2705; Purchased</div>
+        <div class="chip" data-outcome="WalkedOut" onclick="selectOutcome(this, 'WalkedOut')">&#x1f6aa; Walked Out</div>
+        <div class="chip" data-outcome="ComingBack" onclick="selectOutcome(this, 'ComingBack')">&#x1f504; Coming Back</div>
+      </div>
+
+      <!-- Conditional: Walkout reasons -->
+      <div class="conditional-section" id="section-walkout">
+        <div class="outcome-sub">
+          <label class="form-label">Walkout Reason</label>
+          <div class="chip-group" id="walkout-chips">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Conditional: Invoice number -->
+      <div class="conditional-section" id="section-invoice">
+        <div class="outcome-sub">
+          <div class="input-group">
+            <label for="invoice-input">Invoice Number</label>
+            <input type="text" id="invoice-input" class="text-input" placeholder="e.g. BCH-2026-0848">
+          </div>
+        </div>
+      </div>
+
+      <!-- Conditional: Follow-up date -->
+      <div class="conditional-section" id="section-followup">
+        <div class="outcome-sub">
+          <div class="input-group">
+            <label for="followup-date">Follow-Up Date</label>
+            <input type="date" id="followup-date" class="text-input" min="">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <button class="btn btn-success btn-full" onclick="saveOutcome()" id="save-outcome-btn">
+          &#x1f4be; SAVE OUTCOME
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /tab-entry -->
+
+
+  <!-- ===================== TAB 2: TODAY'S LIST ===================== -->
+  <div class="tab-panel page-content" id="tab-list">
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stats-bar-item">
+        <div class="stats-bar-num" id="list-total">45</div>
+        <div class="stats-bar-label">Total</div>
+      </div>
+      <div class="stats-bar-item">
+        <div class="stats-bar-num" id="list-fromleads">12</div>
+        <div class="stats-bar-label">From Leads</div>
+      </div>
+      <div class="stats-bar-item">
+        <div class="stats-bar-num" id="list-fresh">28</div>
+        <div class="stats-bar-label">Fresh</div>
+      </div>
+      <div class="stats-bar-item">
+        <div class="stats-bar-num" id="list-returning">5</div>
+        <div class="stats-bar-label">Returning</div>
+      </div>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="filter-strip" id="filter-strip">
+      <button class="filter-chip active" data-filter="all" onclick="applyFilter(this, 'all')">All</button>
+      <button class="filter-chip" data-filter="fromleads" onclick="applyFilter(this, 'fromleads')">From Leads</button>
+      <button class="filter-chip" data-filter="fresh" onclick="applyFilter(this, 'fresh')">Fresh</button>
+      <button class="filter-chip" data-filter="purchased" onclick="applyFilter(this, 'purchased')">Purchased</button>
+      <button class="filter-chip" data-filter="walkedout" onclick="applyFilter(this, 'walkedout')">Walked Out</button>
+    </div>
+
+    <!-- Walk-in cards list -->
+    <div id="walkin-list">
+      <!-- Rendered by JS -->
+    </div>
+
+  </div><!-- /tab-list -->
+
+
+  <!-- ===================== TAB 3: END OF DAY SUMMARY ===================== -->
+  <div class="tab-panel page-content" id="tab-summary">
+
+    <!-- Big total card -->
+    <div class="summary-big-card">
+      <div class="summary-big-label">Today's Walk-Ins</div>
+      <div class="summary-big-number" id="sum-total">45</div>
+      <div class="summary-sub-row">
+        <div class="summary-sub-box">
+          <div class="summary-sub-num" style="color:var(--primary)" id="sum-fromleads">12</div>
+          <div class="summary-sub-pct" id="sum-fromleads-pct">27%</div>
+          <div class="summary-sub-label">From phone leads</div>
+        </div>
+        <div class="summary-sub-box">
+          <div class="summary-sub-num" style="color:var(--success)" id="sum-fresh">28</div>
+          <div class="summary-sub-pct" id="sum-fresh-pct">62%</div>
+          <div class="summary-sub-label">Fresh walk-ins</div>
+        </div>
+        <div class="summary-sub-box">
+          <div class="summary-sub-num" style="color:var(--warning)" id="sum-returning">5</div>
+          <div class="summary-sub-pct" id="sum-returning-pct">11%</div>
+          <div class="summary-sub-label">Returning</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Purchase stats -->
+    <div class="purchase-row">
+      <div class="purchase-card green">
+        <div class="purchase-num" id="sum-purchased">32</div>
+        <div class="purchase-label">Purchased</div>
+        <div class="purchase-sub" id="sum-purchased-pct">71% conversion</div>
+      </div>
+      <div class="purchase-card red">
+        <div class="purchase-num" id="sum-walkedout">13</div>
+        <div class="purchase-label">Walked Out</div>
+        <div class="purchase-sub" id="sum-walkedout-pct">29%</div>
+      </div>
+    </div>
+
+    <!-- Walkout reasons breakdown -->
+    <div class="summary-big-card" style="margin-top:8px;">
+      <div class="card-header" style="margin-bottom:12px;">
+        <span class="card-title">Walk-Out Reasons</span>
+        <span class="text-xs text-muted">13 total</span>
+      </div>
+      <div id="walkout-chart">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Phone capture stat -->
+    <div class="summary-big-card">
+      <div class="card-title" style="margin-bottom:10px;">&#x1f4f1; Phone Captured from Walk-Outs</div>
+      <div class="capture-stat-row">
+        <div>
+          <div class="capture-fraction">8/13</div>
+          <div class="capture-pct">62% capture rate</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px;color:var(--gray-600);">5 uncaptured</div>
+          <div style="font-size:11px;color:var(--gray-400);">follow-up opportunity</div>
+        </div>
+      </div>
+      <div class="progress-bar" style="height:10px;">
+        <div class="progress-fill success" style="width:62%;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--gray-500);margin-top:6px;">8 new leads added to follow-up pipeline</div>
+    </div>
+
+    <!-- Pipeline alert -->
+    <div class="alert alert-success" style="margin-bottom:16px;">
+      <span style="font-size:18px;">&#x1f4e5;</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;">8 new leads added to follow-up pipeline</div>
+        <div style="font-size:12px;margin-top:2px;opacity:0.85;">Walk-out phones assigned to BDC for tomorrow's outreach</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-summary -->
+
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" role="navigation" aria-label="Module navigation">
+    <button class="nav-item active" id="nav-entry" onclick="switchWalkInTab('tab-entry');setNavActive('nav-entry')">
+      <span class="nav-icon">&#x2795;</span>
+      <span>New Entry</span>
+    </button>
+    <button class="nav-item" id="nav-list" onclick="switchWalkInTab('tab-list');setNavActive('nav-list')">
+      <span class="nav-icon">&#x1f4cb;</span>
+      <span>Today</span>
+      <span class="nav-badge" id="nav-list-badge">45</span>
+    </button>
+    <button class="nav-item" id="nav-summary" onclick="switchWalkInTab('tab-summary');setNavActive('nav-summary')">
+      <span class="nav-icon">&#x1f4ca;</span>
+      <span>Summary</span>
+    </button>
+  </nav>
+
+
+  <script src="data.js"></script>
+  <script>
+    // =====================================================
+    // STATE
+    // =====================================================
+    const state = {
+      selectedInterest: null,
+      selectedAssign: null,
+      selectedOutcome: null,
+      selectedWalkoutReason: null,
+      matchedLead: null,
+      currentFilter: 'all',
+      walkInList: [...BCH.walkInsToday] // local copy to allow mutations
+    };
+
+    // =====================================================
+    // INIT
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', function () {
+      renderInterestChips();
+      renderAssignChips();
+      renderWalkoutChips();
+      renderWalkInList();
+      renderWalkoutChart();
+      setSummaryStats();
+      setListStats();
+      setFollowUpDateDefault();
+    });
+
+    // =====================================================
+    // TAB SWITCHING (custom, to also sync bottom nav)
+    // =====================================================
+    const tabNavMap = {
+      'tab-entry': 'nav-entry',
+      'tab-list': 'nav-list',
+      'tab-summary': 'nav-summary'
+    };
+
+    function switchWalkInTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      if (tabBtn) tabBtn.classList.add('active');
+      const panel = document.getElementById(tabId);
+      if (panel) panel.classList.add('active');
+      setNavActive(tabNavMap[tabId]);
+    }
+
+    function setNavActive(navId) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const nav = document.getElementById(navId);
+      if (nav) nav.classList.add('active');
+    }
+
+    // =====================================================
+    // TAB 1 - RENDER CHIPS
+    // =====================================================
+    function renderInterestChips() {
+      const container = document.getElementById('interest-chips');
+      container.innerHTML = '';
+      BCH.interests.forEach(interest => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = interest;
+        chip.setAttribute('data-value', interest);
+        chip.setAttribute('role', 'button');
+        chip.setAttribute('aria-pressed', 'false');
+        chip.onclick = () => selectSingleChip(container, chip, 'selectedInterest', interest);
+        container.appendChild(chip);
+      });
+    }
+
+    function renderAssignChips() {
+      const container = document.getElementById('assign-chips');
+      container.innerHTML = '';
+      BCH.staff.sales.forEach(staff => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = staff.name;
+        chip.setAttribute('data-value', staff.id);
+        chip.setAttribute('role', 'button');
+        chip.setAttribute('aria-pressed', 'false');
+        chip.onclick = () => selectSingleChip(container, chip, 'selectedAssign', staff.id);
+        container.appendChild(chip);
+      });
+    }
+
+    function renderWalkoutChips() {
+      const container = document.getElementById('walkout-chips');
+      container.innerHTML = '';
+      BCH.walkoutReasons.forEach(reason => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = reason;
+        chip.setAttribute('data-value', reason);
+        chip.setAttribute('role', 'button');
+        chip.setAttribute('aria-pressed', 'false');
+        chip.onclick = () => selectSingleChip(container, chip, 'selectedWalkoutReason', reason);
+        container.appendChild(chip);
+      });
+    }
+
+    function selectSingleChip(container, selectedChip, stateKey, value) {
+      container.querySelectorAll('.chip').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      selectedChip.classList.add('selected');
+      selectedChip.setAttribute('aria-pressed', 'true');
+      state[stateKey] = value;
+    }
+
+    // =====================================================
+    // TAB 1 - PHONE CHECK
+    // =====================================================
+    function checkPhone() {
+      const input = document.getElementById('phone-input');
+      const phone = input.value.trim();
+      const resultEl = document.getElementById('match-result');
+
+      if (phone.length < 6) {
+        showToast('Enter at least 6 digits to search', 'warning');
+        return;
+      }
+
+      const checkBtn = document.getElementById('check-btn');
+      checkBtn.textContent = '...';
+      checkBtn.disabled = true;
+
+      setTimeout(() => {
+        checkBtn.textContent = 'CHECK';
+        checkBtn.disabled = false;
+
+        // Try to match against leads (simulated)
+        const matched = BCH.leads.find(l => l.phone === phone);
+        resultEl.classList.remove('hidden');
+
+        if (matched) {
+          state.matchedLead = matched;
+          const sourceName = getProfileName(matched.source);
+          const dateStr = matched.createdAt ? matched.createdAt.split(' ')[0] : '';
+          const formatted = formatDate(dateStr);
+          const interest = [matched.brand, matched.model].filter(Boolean).join(' ');
+          const budget = matched.budget ? ', Budget ' + matched.budget : '';
+
+          resultEl.innerHTML = `
+            <div class="alert alert-success alert-match" style="margin:0;">
+              <span style="font-size:18px;">&#x2705;</span>
+              <div>
+                <div class="match-title">MATCH FOUND!</div>
+                <div class="match-detail">
+                  <strong>${matched.name || 'Unknown'}</strong> from <strong>${sourceName}</strong> call on ${formatted}
+                  ${interest || matched.interest ? ' &mdash; Interested in ' + (interest || matched.interest) + budget : ''}
+                </div>
+                <div style="margin-top:4px;font-size:11px;opacity:0.85;">
+                  Score: ${matched.score || 'N/A'} &middot; Stage: ${matched.stage}
+                  ${matched.assignedTo ? ' &middot; Assigned: ' + getStaffName(matched.assignedTo) : ''}
+                </div>
+              </div>
+            </div>`;
+
+          // Auto-select interest chip if matched
+          if (matched.interest) {
+            const interestContainer = document.getElementById('interest-chips');
+            const matchChip = interestContainer.querySelector(`[data-value="${matched.interest}"]`);
+            if (matchChip) {
+              selectSingleChip(interestContainer, matchChip, 'selectedInterest', matched.interest);
+            }
+          }
+          // Auto-select assigned staff chip if matched
+          if (matched.assignedTo) {
+            const assignContainer = document.getElementById('assign-chips');
+            const assignChip = assignContainer.querySelector(`[data-value="${matched.assignedTo}"]`);
+            if (assignChip) {
+              selectSingleChip(assignContainer, assignChip, 'selectedAssign', matched.assignedTo);
+            }
+          }
+
+        } else {
+          state.matchedLead = null;
+          resultEl.innerHTML = `
+            <div class="alert alert-info" style="margin:0;">
+              <span style="font-size:16px;">&#x1f464;</span>
+              <div>
+                <div style="font-weight:700;">Fresh walk-in - no prior record</div>
+                <div style="font-size:12px;margin-top:2px;opacity:0.9;">This number has no existing lead. A new record will be created.</div>
+              </div>
+            </div>`;
+        }
+      }, 600);
+    }
+
+    // Allow Enter key on phone input to trigger check
+    document.getElementById('phone-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') checkPhone();
+    });
+
+    // Only allow numeric input
+    document.getElementById('phone-input').addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
+
+    // =====================================================
+    // TAB 1 - CAPTURE WALK-IN
+    // =====================================================
+    function captureWalkIn() {
+      if (!state.selectedInterest) {
+        showToast('Please select an interest category', 'warning');
+        return;
+      }
+      if (!state.selectedAssign) {
+        showToast('Please assign to a sales person', 'warning');
+        return;
+      }
+
+      const btn = document.getElementById('capture-btn');
+      btn.textContent = 'Saving...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        btn.innerHTML = '&#x1f6b6; CAPTURE WALK-IN';
+        btn.disabled = false;
+
+        const phone = document.getElementById('phone-input').value.trim() || null;
+        const newEntry = {
+          id: 'W' + String(state.walkInList.length + 1).padStart(3, '0'),
+          phone: phone,
+          name: state.matchedLead ? state.matchedLead.name : null,
+          fromLead: !!state.matchedLead,
+          source: state.matchedLead ? state.matchedLead.source : null,
+          interest: state.selectedInterest,
+          assignedTo: state.selectedAssign,
+          outcome: null,
+          time: getCurrentTime()
+        };
+
+        state.walkInList.unshift(newEntry);
+
+        const staffName = getStaffName(state.selectedAssign);
+        showToast('Walk-in captured! Assigned to ' + staffName, 'success');
+
+        // Update badge and stats
+        updateListBadge();
+        renderWalkInList();
+
+        // Reset form
+        resetEntryForm();
+      }, 500);
+    }
+
+    function resetEntryForm() {
+      document.getElementById('phone-input').value = '';
+      document.getElementById('match-result').classList.add('hidden');
+      document.getElementById('match-result').innerHTML = '';
+
+      document.getElementById('interest-chips').querySelectorAll('.chip').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+      document.getElementById('assign-chips').querySelectorAll('.chip').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-pressed', 'false');
+      });
+
+      state.selectedInterest = null;
+      state.selectedAssign = null;
+      state.matchedLead = null;
+    }
+
+    // =====================================================
+    // TAB 1 - OUTCOME LOGGING
+    // =====================================================
+    function selectOutcome(chip, outcome) {
+      // Update chip visuals
+      document.querySelectorAll('#outcome-chips .chip').forEach(c => {
+        c.classList.remove('selected', 'selected-success', 'selected-danger', 'selected-warning');
+      });
+
+      if (outcome === 'Purchased') {
+        chip.classList.add('selected-success');
+      } else if (outcome === 'WalkedOut') {
+        chip.classList.add('selected-danger');
+      } else if (outcome === 'ComingBack') {
+        chip.classList.add('selected-warning');
+      }
+
+      state.selectedOutcome = outcome;
+
+      // Show/hide conditional sections
+      toggleSection('section-walkout', outcome === 'WalkedOut');
+      toggleSection('section-invoice', outcome === 'Purchased');
+      toggleSection('section-followup', outcome === 'ComingBack');
+    }
+
+    function toggleSection(id, show) {
+      const el = document.getElementById(id);
+      if (show) {
+        el.classList.add('visible');
+      } else {
+        el.classList.remove('visible');
+      }
+    }
+
+    function saveOutcome() {
+      if (!state.selectedOutcome) {
+        showToast('Please select an outcome first', 'warning');
+        return;
+      }
+      if (state.selectedOutcome === 'WalkedOut' && !state.selectedWalkoutReason) {
+        showToast('Please select a walkout reason', 'warning');
+        return;
+      }
+      if (state.selectedOutcome === 'Purchased') {
+        const inv = document.getElementById('invoice-input').value.trim();
+        if (!inv) {
+          showToast('Please enter the invoice number', 'warning');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('save-outcome-btn');
+      btn.textContent = 'Saving...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        btn.innerHTML = '&#x1f4be; SAVE OUTCOME';
+        btn.disabled = false;
+
+        let msg = '';
+        if (state.selectedOutcome === 'Purchased') {
+          msg = 'Sale recorded! Invoice saved.';
+        } else if (state.selectedOutcome === 'WalkedOut') {
+          msg = 'Walk-out logged. Reason: ' + state.selectedWalkoutReason;
+        } else {
+          msg = 'Coming back noted. Follow-up scheduled.';
+        }
+
+        showToast(msg, 'success');
+
+        // Reset outcome section
+        document.querySelectorAll('#outcome-chips .chip').forEach(c => {
+          c.classList.remove('selected', 'selected-success', 'selected-danger', 'selected-warning');
+        });
+        document.querySelectorAll('#walkout-chips .chip').forEach(c => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-pressed', 'false');
+        });
+        document.getElementById('invoice-input').value = '';
+        setFollowUpDateDefault();
+        toggleSection('section-walkout', false);
+        toggleSection('section-invoice', false);
+        toggleSection('section-followup', false);
+        state.selectedOutcome = null;
+        state.selectedWalkoutReason = null;
+      }, 500);
+    }
+
+    // =====================================================
+    // TAB 2 - WALK-IN LIST
+    // =====================================================
+    function renderWalkInList() {
+      const container = document.getElementById('walkin-list');
+      const filtered = getFilteredList();
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#x1f6b6;</div>
+            <p>No walk-ins match this filter</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      filtered.forEach(walkin => {
+        const card = createWalkInCard(walkin);
+        container.appendChild(card);
+      });
+    }
+
+    function createWalkInCard(w) {
+      const card = document.createElement('div');
+      const outcomeClass = w.outcome === 'Purchased' ? 'outcome-purchased'
+        : w.outcome === 'WalkedOut' ? 'outcome-walkedout'
+        : 'outcome-instore';
+      card.className = `walkin-card ${outcomeClass}`;
+
+      const name = w.name || 'Unknown walk-in';
+      const staffName = w.assignedTo ? getStaffName(w.assignedTo) : 'Unassigned';
+      const outcomeBadge = getOutcomeBadge(w.outcome);
+      const fromLeadBadge = w.fromLead
+        ? `<span class="from-lead-badge">&#x1f517; ${getProfileName(w.source)}</span>`
+        : '';
+
+      card.innerHTML = `
+        <div class="walkin-top">
+          <div class="walkin-name">${name}</div>
+          <div class="walkin-time">${w.time}</div>
+        </div>
+        <div class="walkin-interest">${w.interest} interest</div>
+        <div class="walkin-meta">
+          ${fromLeadBadge}
+          <span class="interest-tag">${w.interest}</span>
+          <span class="assignee-label">&#x1f464; ${staffName}</span>
+          ${outcomeBadge}
+          ${w.walkoutReason ? `<span class="lead-tag tag-time">${w.walkoutReason}</span>` : ''}
+        </div>
+      `;
+
+      card.onclick = () => {
+        showToast(`${name} &mdash; ${w.interest} &mdash; ${staffName}`, 'info');
+      };
+
+      return card;
+    }
+
+    function getOutcomeBadge(outcome) {
+      if (outcome === 'Purchased') {
+        return `<span class="outcome-badge purchased">&#x2705; Purchased</span>`;
+      } else if (outcome === 'WalkedOut') {
+        return `<span class="outcome-badge walkedout">&#x1f6aa; Walked Out</span>`;
+      } else {
+        return `<span class="outcome-badge instore">&#x1f7e2; In Store</span>`;
+      }
+    }
+
+    function getFilteredList() {
+      const f = state.currentFilter;
+      return state.walkInList.filter(w => {
+        if (f === 'all') return true;
+        if (f === 'fromleads') return w.fromLead === true;
+        if (f === 'fresh') return w.fromLead === false;
+        if (f === 'purchased') return w.outcome === 'Purchased';
+        if (f === 'walkedout') return w.outcome === 'WalkedOut';
+        return true;
+      });
+    }
+
+    function applyFilter(chipEl, filter) {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chipEl.classList.add('active');
+      state.currentFilter = filter;
+      renderWalkInList();
+    }
+
+    // =====================================================
+    // TAB 3 - SUMMARY
+    // =====================================================
+    function setSummaryStats() {
+      const s = BCH.todayStats;
+      const total = s.walkInsTotal;
+
+      document.getElementById('sum-total').textContent = total;
+      document.getElementById('sum-fromleads').textContent = s.walkInsFromLeads;
+      document.getElementById('sum-fromleads-pct').textContent = pct(s.walkInsFromLeads, total) + '%';
+      document.getElementById('sum-fresh').textContent = s.walkInsFresh;
+      document.getElementById('sum-fresh-pct').textContent = pct(s.walkInsFresh, total) + '%';
+      document.getElementById('sum-returning').textContent = s.walkInsReturning;
+      document.getElementById('sum-returning-pct').textContent = pct(s.walkInsReturning, total) + '%';
+      document.getElementById('sum-purchased').textContent = s.purchased;
+      document.getElementById('sum-purchased-pct').textContent = pct(s.purchased, total) + '% conversion';
+      document.getElementById('sum-walkedout').textContent = s.walkOut;
+      document.getElementById('sum-walkedout-pct').textContent = pct(s.walkOut, total) + '%';
+    }
+
+    function setListStats() {
+      const s = BCH.todayStats;
+      document.getElementById('list-total').textContent = s.walkInsTotal;
+      document.getElementById('list-fromleads').textContent = s.walkInsFromLeads;
+      document.getElementById('list-fresh').textContent = s.walkInsFresh;
+      document.getElementById('list-returning').textContent = s.walkInsReturning;
+      updateListBadge();
+    }
+
+    function updateListBadge() {
+      document.getElementById('nav-list-badge').textContent = state.walkInList.length;
+      document.getElementById('topbar-count').textContent = state.walkInList.length + ' today';
+    }
+
+    function renderWalkoutChart() {
+      const reasons = [
+        { label: 'Too expensive', count: 4, max: 4 },
+        { label: 'Not in stock', count: 3, max: 4 },
+        { label: 'Family approval', count: 3, max: 4 },
+        { label: 'Just looking', count: 2, max: 4 },
+        { label: 'EMI rejected', count: 1, max: 4 }
+      ];
+
+      const container = document.getElementById('walkout-chart');
+      container.innerHTML = '';
+
+      reasons.forEach(r => {
+        const widthPct = Math.round((r.count / r.max) * 100);
+        const row = document.createElement('div');
+        row.className = 'bar-chart-row';
+        row.innerHTML = `
+          <div class="bar-label bar-label-sm">${r.label}</div>
+          <div class="bar-track">
+            <div class="bar-fill danger" style="width:${widthPct}%;background:var(--danger);">${r.count}</div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // =====================================================
+    // UTILITY HELPERS
+    // =====================================================
+    function pct(part, total) {
+      if (!total) return 0;
+      return Math.round((part / total) * 100);
+    }
+
+    function getCurrentTime() {
+      const now = new Date();
+      let h = now.getHours();
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${m} ${ampm}`;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const d = new Date(dateStr);
+      return months[d.getMonth()] + ' ' + d.getDate();
+    }
+
+    function setFollowUpDateDefault() {
+      const input = document.getElementById('followup-date');
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const iso = tomorrow.toISOString().split('T')[0];
+      input.min = iso;
+      input.value = iso;
+    }
+
+  </script>
+</body>
+</html>

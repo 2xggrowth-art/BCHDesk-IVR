@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>BCH Dashboard - Manager</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ===== MANAGER-SPECIFIC STYLES ===== */
+
+    .top-bar {
+      padding: 10px 16px 8px;
+    }
+
+    .top-bar-center {
+      flex: 1;
+      padding: 0 10px;
+    }
+
+    .top-bar-date {
+      font-size: 11px;
+      opacity: 0.8;
+      white-space: nowrap;
+    }
+
+    /* Live indicator */
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+      display: inline-block;
+      margin-right: 4px;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Section label inside cards */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+
+    /* Revenue card */
+    .revenue-card {
+      background: linear-gradient(135deg, #1a73e8 0%, #1254a0 100%);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 8px 12px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .revenue-total {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .revenue-label {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    .revenue-split {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .revenue-split-item {
+      flex: 1;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .revenue-split-amount {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .revenue-split-label {
+      font-size: 10px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    .revenue-split-pct {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .progress-bar-white {
+      height: 6px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar-white .fill {
+      height: 100%;
+      background: rgba(255,255,255,0.85);
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+
+    /* Salesperson card */
+    .salesperson-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 6px 12px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--gray-300);
+    }
+
+    .salesperson-card.has-warning {
+      border-left-color: var(--warning);
+    }
+
+    .salesperson-card.top-performer {
+      border-left-color: var(--success);
+    }
+
+    .sp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .sp-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .sp-revenue {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .sp-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .sp-stat {
+      text-align: center;
+    }
+
+    .sp-stat-num {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .sp-stat-label {
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+
+    .sp-warning {
+      background: var(--warning-light);
+      color: var(--warning);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Pipeline stages */
+    .pipeline-stage-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+
+    .pipeline-stage-count {
+      font-size: 15px;
+      font-weight: 700;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .pipeline-bar-wrap {
+      flex: 1;
+      max-width: 100px;
+    }
+
+    .pipeline-bar-track {
+      height: 12px;
+      background: var(--gray-100);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .pipeline-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.6s ease;
+    }
+
+    /* Pipeline value card */
+    .pipeline-value-card {
+      background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pipeline-value-label {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-bottom: 4px;
+    }
+
+    .pipeline-value-amount {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .pipeline-value-icon {
+      font-size: 36px;
+      opacity: 0.6;
+    }
+
+    /* Funnel card */
+    .funnel-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .funnel-row:last-child {
+      border-bottom: none;
+    }
+
+    .funnel-arrow {
+      font-size: 16px;
+      color: var(--gray-400);
+      width: 20px;
+      text-align: center;
+    }
+
+    .funnel-label {
+      flex: 1;
+      font-size: 13px;
+      color: var(--gray-700);
+    }
+
+    .funnel-pct {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .funnel-bar-track {
+      width: 80px;
+      height: 8px;
+      background: var(--gray-100);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .funnel-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--primary);
+    }
+
+    /* Team scorecard table */
+    .team-table-wrap {
+      overflow-x: auto;
+      margin: 0 12px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      background: var(--white);
+    }
+
+    .team-table {
+      width: 100%;
+      font-size: 11px;
+      border-collapse: collapse;
+      min-width: 380px;
+    }
+
+    .team-table th {
+      padding: 9px 8px;
+      font-weight: 700;
+      color: var(--gray-600);
+      border-bottom: 2px solid var(--gray-200);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      background: var(--gray-50);
+      position: sticky;
+      top: 0;
+    }
+
+    .team-table td {
+      padding: 9px 8px;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-800);
+    }
+
+    .team-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .team-table tr.underperformer td {
+      background: #fff8f0;
+    }
+
+    .team-table .name-cell {
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .rate-good { color: var(--success); font-weight: 700; }
+    .rate-warn { color: var(--warning); font-weight: 700; }
+    .rate-bad { color: var(--danger); font-weight: 700; }
+
+    /* Underperformer alert card */
+    .underperformer-card {
+      background: var(--warning-light);
+      border: 1px solid #f0b429;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin: 6px 12px;
+    }
+
+    .underperformer-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--warning);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .underperformer-detail {
+      font-size: 12px;
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
+
+    /* Action buttons grid */
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 8px 12px;
+    }
+
+    .action-btn {
+      background: var(--white);
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .action-btn:active {
+      background: var(--gray-50);
+      transform: scale(0.96);
+    }
+
+    .action-btn-icon {
+      font-size: 22px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .action-btn.primary-action {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+      grid-column: span 2;
+    }
+
+    /* Highlights card */
+    .highlight-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .highlight-row:last-child {
+      border-bottom: none;
+    }
+
+    .highlight-icon {
+      font-size: 18px;
+      width: 28px;
+      text-align: center;
+    }
+
+    .highlight-text {
+      flex: 1;
+      font-size: 13px;
+      color: var(--gray-800);
+    }
+
+    .highlight-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Follow-up compliance */
+    .compliance-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .compliance-label {
+      font-size: 12px;
+      color: var(--gray-700);
+      min-width: 90px;
+    }
+
+    .compliance-bar {
+      flex: 1;
+      height: 10px;
+      background: var(--gray-100);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .compliance-bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.6s ease;
+    }
+
+    .compliance-num {
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 28px;
+      text-align: right;
+    }
+
+    /* Inline source chart */
+    .source-chart-wrap {
+      padding: 4px 0;
+    }
+
+    /* Total row in data table */
+    .data-table tr.total-row td {
+      font-weight: 700;
+      color: var(--gray-900);
+      border-top: 2px solid var(--gray-300);
+      background: var(--gray-50);
+    }
+
+    /* Stat box col-4 smaller text */
+    .stat-grid.cols-4 .stat-number {
+      font-size: 18px;
+    }
+
+    .stat-grid.cols-4 .stat-label {
+      font-size: 10px;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Tab content spacing */
+    .tab-panel > :first-child {
+      padding-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <a href="index.html" style="text-decoration:none;">
+        <button class="back-btn" aria-label="Back to home">&#8592;</button>
+      </a>
+      <div>
+        <h1>BCH Dashboard</h1>
+        <div class="subtitle">Ibrahim &mdash; Manager</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <div style="text-align:right;">
+        <div class="top-bar-date">Feb 21, 2026</div>
+        <div style="font-size:10px;opacity:0.75;margin-top:1px;">
+          <span class="live-dot"></span>Live
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB NAV -->
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="tab-live" onclick="switchManagerTab('tab-live', this)" role="tab" aria-selected="true">Live</button>
+    <button class="tab-btn" data-tab="tab-roi" onclick="switchManagerTab('tab-roi', this)" role="tab" aria-selected="false">Content ROI</button>
+    <button class="tab-btn" data-tab="tab-pipeline" onclick="switchManagerTab('tab-pipeline', this)" role="tab" aria-selected="false">Pipeline</button>
+    <button class="tab-btn" data-tab="tab-team" onclick="switchManagerTab('tab-team', this)" role="tab" aria-selected="false">Team</button>
+  </nav>
+
+  <!-- PAGE CONTENT -->
+  <main class="page-content">
+
+    <!-- ===== TAB 1: LIVE VIEW ===== -->
+    <div class="tab-panel active" id="tab-live" role="tabpanel">
+
+      <!-- CALLS TODAY -->
+      <div class="section-title">Calls Today</div>
+      <div class="stat-grid cols-4">
+        <div class="stat-box">
+          <div class="stat-number" id="live-total-calls">--</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="live-answered">--</div>
+          <div class="stat-label">Answered</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="live-ivr">--</div>
+          <div class="stat-label">IVR Fltrd</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number danger" id="live-missed">--</div>
+          <div class="stat-label">Missed</div>
+        </div>
+      </div>
+
+      <!-- BY SOURCE -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">By Source</span>
+          <span class="text-xs text-muted">Calls this month</span>
+        </div>
+        <div class="source-chart-wrap" id="source-chart">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- MISSED CALLS ALERT -->
+      <div class="alert alert-danger" id="missed-alert">
+        <span>&#9888;</span>
+        <span id="missed-alert-text">Loading...</span>
+      </div>
+
+      <!-- LEADS TODAY -->
+      <div class="section-title">Leads Today</div>
+      <div class="stat-grid cols-4">
+        <div class="stat-box">
+          <div class="stat-number" id="leads-created">--</div>
+          <div class="stat-label">Created</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="leads-qualified">--</div>
+          <div class="stat-label">Qualified</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="leads-assigned">--</div>
+          <div class="stat-label">Assigned</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="leads-contacted">--</div>
+          <div class="stat-label">Contacted</div>
+        </div>
+      </div>
+
+      <!-- WALK-INS TODAY -->
+      <div class="section-title">Walk-ins Today</div>
+      <div class="stat-grid cols-3" style="margin-bottom:0;">
+        <div class="stat-box">
+          <div class="stat-number" id="wi-total">--</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="wi-from-leads">--</div>
+          <div class="stat-label">From Leads</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="wi-fresh">--</div>
+          <div class="stat-label">Fresh</div>
+        </div>
+      </div>
+      <div class="stat-grid cols-3">
+        <div class="stat-box">
+          <div class="stat-number success" id="wi-purchased">--</div>
+          <div class="stat-label">Purchased</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="wi-walkout">--</div>
+          <div class="stat-label">Walk-out</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number primary" id="wi-conv">--</div>
+          <div class="stat-label">Conversion</div>
+        </div>
+      </div>
+
+      <!-- REVENUE TODAY -->
+      <div class="revenue-card">
+        <div class="revenue-label">Revenue Today</div>
+        <div class="revenue-total" id="rev-total">--</div>
+        <div class="progress-bar-white">
+          <div class="fill" id="rev-leads-bar" style="width:35%;"></div>
+        </div>
+        <div class="revenue-split">
+          <div class="revenue-split-item">
+            <div class="revenue-split-amount" id="rev-leads">--</div>
+            <div class="revenue-split-pct" id="rev-leads-pct">--% of total</div>
+            <div class="revenue-split-label">From Leads</div>
+          </div>
+          <div class="revenue-split-item">
+            <div class="revenue-split-amount" id="rev-walkins">--</div>
+            <div class="revenue-split-pct" id="rev-walkins-pct">--% of total</div>
+            <div class="revenue-split-label">Walk-ins</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SALESPERSON PERFORMANCE -->
+      <div class="section-title">Salesperson Performance</div>
+      <div id="salesperson-cards">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- FOLLOW-UP COMPLIANCE -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Follow-up Compliance</span>
+          <span class="fw-700" id="compliance-pct" style="color:var(--warning);">--</span>
+        </div>
+        <div class="compliance-row">
+          <span class="compliance-label">Due Today</span>
+          <div class="compliance-bar">
+            <div class="compliance-bar-fill" style="background:var(--primary);width:100%;"></div>
+          </div>
+          <span class="compliance-num text-primary" id="fu-due">--</span>
+        </div>
+        <div class="compliance-row">
+          <span class="compliance-label">Completed</span>
+          <div class="compliance-bar">
+            <div class="compliance-bar-fill" id="fu-completed-bar" style="background:var(--success);"></div>
+          </div>
+          <span class="compliance-num text-success" id="fu-completed">--</span>
+        </div>
+        <div class="compliance-row" style="margin-bottom:0;">
+          <span class="compliance-label">Pending</span>
+          <div class="compliance-bar">
+            <div class="compliance-bar-fill" id="fu-pending-bar" style="background:var(--danger);"></div>
+          </div>
+          <span class="compliance-num text-danger" id="fu-pending">--</span>
+        </div>
+      </div>
+
+    </div><!-- /tab-live -->
+
+    <!-- ===== TAB 2: CONTENT ROI ===== -->
+    <div class="tab-panel" id="tab-roi" role="tabpanel">
+
+      <div class="section-title">Monthly Content ROI</div>
+
+      <!-- Data Table -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="roi-table" style="min-width:360px;">
+            <thead>
+              <tr>
+                <th>Profile</th>
+                <th>Calls</th>
+                <th>Qual</th>
+                <th>Visit</th>
+                <th>Purch</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody id="roi-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+            <tfoot id="roi-tfoot">
+              <!-- Total row -->
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Conversion Funnel -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Conversion Funnel</span>
+          <span class="text-xs text-muted">Monthly</span>
+        </div>
+        <div class="funnel-row">
+          <span class="funnel-arrow">&#8594;</span>
+          <span class="funnel-label">Calls to Qualified</span>
+          <div class="funnel-bar-track">
+            <div class="funnel-bar-fill" style="width:33%;background:var(--primary);"></div>
+          </div>
+          <span class="funnel-pct text-primary">33%</span>
+        </div>
+        <div class="funnel-row">
+          <span class="funnel-arrow">&#8594;</span>
+          <span class="funnel-label">Qualified to Visit</span>
+          <div class="funnel-bar-track">
+            <div class="funnel-bar-fill" style="width:40%;background:var(--warning);"></div>
+          </div>
+          <span class="funnel-pct text-warning">40%</span>
+        </div>
+        <div class="funnel-row">
+          <span class="funnel-arrow">&#8594;</span>
+          <span class="funnel-label">Visit to Purchase</span>
+          <div class="funnel-bar-track">
+            <div class="funnel-bar-fill" style="width:79%;background:var(--success);"></div>
+          </div>
+          <span class="funnel-pct text-success">79%</span>
+        </div>
+        <div class="funnel-row">
+          <span class="funnel-arrow">&#8594;</span>
+          <span class="funnel-label">Overall (Call&#8594;Buy)</span>
+          <div class="funnel-bar-track">
+            <div class="funnel-bar-fill" style="width:10.5%;background:var(--purple);"></div>
+          </div>
+          <span class="funnel-pct" style="color:var(--purple);">10.5%</span>
+        </div>
+      </div>
+
+      <!-- Highlights -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Highlights</span>
+        </div>
+        <div class="highlight-row">
+          <span class="highlight-icon">&#127942;</span>
+          <span class="highlight-text">Best Volume</span>
+          <span class="highlight-value">Wattsonwheelz</span>
+        </div>
+        <div class="highlight-row">
+          <span class="highlight-icon">&#128200;</span>
+          <span class="highlight-text">Best ROI / Call</span>
+          <span class="highlight-value">Google</span>
+        </div>
+        <div class="highlight-row">
+          <span class="highlight-icon">&#128181;</span>
+          <span class="highlight-text">Highest Revenue</span>
+          <span class="highlight-value">Wattsonwheelz</span>
+        </div>
+        <div class="highlight-row">
+          <span class="highlight-icon">&#128683;</span>
+          <span class="highlight-text">Lowest Conv%</span>
+          <span class="highlight-value">Next.BLR</span>
+        </div>
+      </div>
+
+    </div><!-- /tab-roi -->
+
+    <!-- ===== TAB 3: PIPELINE VIEW ===== -->
+    <div class="tab-panel" id="tab-pipeline" role="tabpanel">
+
+      <!-- Pipeline Value -->
+      <div class="pipeline-value-card">
+        <div>
+          <div class="pipeline-value-label">Active Pipeline Value</div>
+          <div class="pipeline-value-amount">Rs.12.4L</div>
+          <div style="font-size:11px;opacity:0.75;margin-top:3px;">Across all stages</div>
+        </div>
+        <div class="pipeline-value-icon">&#128202;</div>
+      </div>
+
+      <!-- Pipeline Stages -->
+      <div class="section-title">Stage Breakdown</div>
+      <div class="card" style="padding:8px 0;">
+        <div id="pipeline-stages">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Stage bar chart -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Stage Volume Chart</span>
+        </div>
+        <div id="pipeline-bar-chart">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-number" id="pipe-active">--</div>
+          <div class="stat-label">Active Leads</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number success" id="pipe-purchased">--</div>
+          <div class="stat-label">Purchased (All)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number danger" id="pipe-lost">--</div>
+          <div class="stat-label">Lost</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="pipe-ivr">--</div>
+          <div class="stat-label">IVR Filtered</div>
+        </div>
+      </div>
+
+    </div><!-- /tab-pipeline -->
+
+    <!-- ===== TAB 4: TEAM PERFORMANCE ===== -->
+    <div class="tab-panel" id="tab-team" role="tabpanel">
+
+      <div class="section-title">Team Scorecard (This Week)</div>
+
+      <!-- Scrollable scorecard table -->
+      <div class="team-table-wrap">
+        <table class="team-table" id="team-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Leads</th>
+              <th>Cont%</th>
+              <th>Conv%</th>
+              <th>Revenue</th>
+              <th>Avg Tkt</th>
+              <th>Resp</th>
+            </tr>
+          </thead>
+          <tbody id="team-tbody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Underperformer Alerts -->
+      <div class="section-title" style="margin-top:8px;">Alerts</div>
+      <div id="underperformer-alerts">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Manager Actions -->
+      <div class="section-title">Manager Actions</div>
+      <div class="action-grid">
+        <button class="action-btn primary-action" onclick="handleManagerAction('reassign')">
+          <span class="action-btn-icon">&#8633;</span>
+          Reassign Lead
+        </button>
+        <button class="action-btn" onclick="handleManagerAction('uncontacted')">
+          <span class="action-btn-icon">&#128222;</span>
+          View Uncontacted
+        </button>
+        <button class="action-btn" onclick="handleManagerAction('export')">
+          <span class="action-btn-icon">&#128196;</span>
+          Export Data
+        </button>
+        <button class="action-btn" onclick="handleManagerAction('followups')">
+          <span class="action-btn-icon">&#128203;</span>
+          Follow-ups Due
+        </button>
+      </div>
+
+    </div><!-- /tab-team -->
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item active" id="nav-live" onclick="switchManagerTab('tab-live', null, 'nav-live')">
+      <span class="nav-icon">&#128200;</span>
+      Live
+    </button>
+    <button class="nav-item" id="nav-roi" onclick="switchManagerTab('tab-roi', null, 'nav-roi')">
+      <span class="nav-icon">&#127909;</span>
+      ROI
+    </button>
+    <button class="nav-item" id="nav-pipeline" onclick="switchManagerTab('tab-pipeline', null, 'nav-pipeline')">
+      <span class="nav-icon">&#128257;</span>
+      Pipeline
+    </button>
+    <button class="nav-item" id="nav-team" onclick="switchManagerTab('tab-team', null, 'nav-team')">
+      <span class="nav-icon">&#128101;</span>
+      Team
+    </button>
+  </nav>
+
+  <script src="data.js"></script>
+  <script>
+    // ===== TAB SWITCHING =====
+    function switchManagerTab(tabId, tabBtn, navId) {
+      // Hide all panels
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      // Deactivate all tab buttons
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      // Deactivate all nav items
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+      // Activate selected panel
+      document.getElementById(tabId).classList.add('active');
+
+      // Activate corresponding tab button
+      const tabMap = {
+        'tab-live': 0,
+        'tab-roi': 1,
+        'tab-pipeline': 2,
+        'tab-team': 3
+      };
+      const navMap = {
+        'tab-live': 'nav-live',
+        'tab-roi': 'nav-roi',
+        'tab-pipeline': 'nav-pipeline',
+        'tab-team': 'nav-team'
+      };
+
+      // Set active tab btn
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const idx = tabMap[tabId];
+      if (tabBtns[idx]) tabBtns[idx].classList.add('active');
+
+      // Set active nav
+      const navItemId = navId || navMap[tabId];
+      const navEl = document.getElementById(navItemId);
+      if (navEl) navEl.classList.add('active');
+    }
+
+    // ===== POPULATE LIVE TAB =====
+    function populateLive() {
+      const s = BCH.todayStats;
+
+      // Calls today
+      document.getElementById('live-total-calls').textContent = s.totalCalls;
+      document.getElementById('live-answered').textContent = s.answered;
+      document.getElementById('live-ivr').textContent = s.ivrFiltered;
+      document.getElementById('live-missed').textContent = s.missed;
+
+      // Missed calls alert
+      document.getElementById('missed-alert-text').textContent =
+        s.missed + ' missed | ' + s.callbacksPending + ' callback pending | Oldest: 45 min ago';
+
+      // Leads today
+      document.getElementById('leads-created').textContent = s.leadsCreated;
+      document.getElementById('leads-qualified').textContent = s.leadsQualified;
+      document.getElementById('leads-assigned').textContent = s.leadsAssigned;
+      document.getElementById('leads-contacted').textContent = s.leadsContacted;
+
+      // Walk-ins today
+      document.getElementById('wi-total').textContent = s.walkInsTotal;
+      document.getElementById('wi-from-leads').textContent = s.walkInsFromLeads;
+      document.getElementById('wi-fresh').textContent = s.walkInsFresh;
+      document.getElementById('wi-purchased').textContent = s.purchased;
+      document.getElementById('wi-walkout').textContent = s.walkOut;
+      const convPct = Math.round((s.purchased / s.walkInsTotal) * 100);
+      document.getElementById('wi-conv').textContent = convPct + '%';
+
+      // Revenue today
+      document.getElementById('rev-total').textContent = formatRupees(s.revenueTotal);
+      document.getElementById('rev-leads').textContent = formatRupees(s.revenueFromLeads);
+      const leadsPct = Math.round((s.revenueFromLeads / s.revenueTotal) * 100);
+      const walkinRev = s.revenueTotal - s.revenueFromLeads;
+      const walkinPct = 100 - leadsPct;
+      document.getElementById('rev-leads-pct').textContent = leadsPct + '% of total';
+      document.getElementById('rev-walkins').textContent = formatRupees(walkinRev);
+      document.getElementById('rev-walkins-pct').textContent = walkinPct + '% of total';
+      document.getElementById('rev-leads-bar').style.width = leadsPct + '%';
+
+      // Follow-up compliance
+      const compPct = Math.round((s.followUpsCompleted / s.followUpsDueToday) * 100);
+      document.getElementById('compliance-pct').textContent = compPct + '%';
+      document.getElementById('fu-due').textContent = s.followUpsDueToday;
+      document.getElementById('fu-completed').textContent = s.followUpsCompleted;
+      document.getElementById('fu-pending').textContent = s.followUpsPending;
+      // Bars relative to due count
+      document.getElementById('fu-completed-bar').style.width =
+        Math.round((s.followUpsCompleted / s.followUpsDueToday) * 100) + '%';
+      document.getElementById('fu-pending-bar').style.width =
+        Math.round((s.followUpsPending / s.followUpsDueToday) * 100) + '%';
+    }
+
+    // ===== BY SOURCE CHART =====
+    function populateSourceChart() {
+      const container = document.getElementById('source-chart');
+      const data = BCH.contentROI;
+      const maxCalls = Math.max(...data.map(d => d.calls));
+
+      const colors = [
+        '#1a73e8', '#0d904f', '#e37400', '#d93025',
+        '#7c3aed', '#00838f', '#c2185b', '#5d4037',
+        '#37474f', '#1565c0'
+      ];
+
+      container.innerHTML = data.map((row, i) => {
+        const pct = Math.round((row.calls / maxCalls) * 100);
+        return `
+          <div class="bar-chart-row">
+            <span class="bar-label">${row.profile}</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%;background:${colors[i % colors.length]};">
+                ${row.calls}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== SALESPERSON CARDS =====
+    function populateSalespersonCards() {
+      const container = document.getElementById('salesperson-cards');
+      const data = BCH.salesPerformance;
+
+      // Find top performer by revenue
+      const maxRev = Math.max(...data.map(d => d.revenue));
+
+      container.innerHTML = data.map(sp => {
+        const uncontacted = sp.leadsReceived - sp.contacted;
+        const hasWarning = sp.contactRate < 75 || sp.responseTime > 4;
+        const isTop = sp.revenue === maxRev;
+
+        let cardClass = 'salesperson-card';
+        if (hasWarning) cardClass += ' has-warning';
+        else if (isTop) cardClass += ' top-performer';
+
+        const warningHtml = hasWarning ? `
+          <div class="sp-warning">
+            &#9888; WARNING: ${uncontacted} uncontacted leads &gt; 4 hours old
+          </div>
+        ` : '';
+
+        return `
+          <div class="${cardClass}">
+            <div class="sp-header">
+              <span class="sp-name">${sp.name}</span>
+              <span class="sp-revenue">${formatRupees(sp.revenue)}</span>
+            </div>
+            <div class="sp-stats">
+              <div class="sp-stat">
+                <div class="sp-stat-num">${sp.leadsReceived}</div>
+                <div class="sp-stat-label">Leads</div>
+              </div>
+              <div class="sp-stat">
+                <div class="sp-stat-num">${sp.contacted}</div>
+                <div class="sp-stat-label">Contacted</div>
+              </div>
+              <div class="sp-stat">
+                <div class="sp-stat-num">${sp.purchased}</div>
+                <div class="sp-stat-label">Converted</div>
+              </div>
+              <div class="sp-stat">
+                <div class="sp-stat-num" style="font-size:13px;">${formatRupees(sp.avgTicket)}</div>
+                <div class="sp-stat-label">Avg Ticket</div>
+              </div>
+            </div>
+            ${warningHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== CONTENT ROI TABLE =====
+    function populateROITable() {
+      const tbody = document.getElementById('roi-tbody');
+      const tfoot = document.getElementById('roi-tfoot');
+      const data = BCH.contentROI;
+
+      let totalCalls = 0, totalQual = 0, totalVisits = 0, totalPurch = 0, totalRev = 0;
+
+      tbody.innerHTML = data.map(row => {
+        totalCalls += row.calls;
+        totalQual += row.qualified;
+        totalVisits += row.visits;
+        totalPurch += row.purchases;
+        totalRev += row.revenue;
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${row.profile}</td>
+            <td>${row.calls.toLocaleString()}</td>
+            <td>${row.qualified}</td>
+            <td>${row.visits}</td>
+            <td>${row.purchases}</td>
+            <td>${formatRupees(row.revenue)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tfoot.innerHTML = `
+        <tr class="total-row">
+          <td>Total</td>
+          <td>${totalCalls.toLocaleString()}</td>
+          <td>${totalQual}</td>
+          <td>${totalVisits}</td>
+          <td>${totalPurch}</td>
+          <td>${formatRupees(totalRev)}</td>
+        </tr>
+      `;
+    }
+
+    // ===== PIPELINE =====
+    const pipelineConfig = [
+      { key: 'ivrFiltered',    label: 'IVR Filtered',     color: '#9aa0a6', dotColor: '#9aa0a6' },
+      { key: 'leadCreated',    label: 'Lead Created',      color: '#1a73e8', dotColor: '#1a73e8' },
+      { key: 'bdcContacted',   label: 'BDC Contacted',     color: '#1557b0', dotColor: '#1557b0' },
+      { key: 'qualified',      label: 'Qualified',         color: '#e37400', dotColor: '#e37400' },
+      { key: 'followUpActive', label: 'Follow-up Active',  color: '#fbbc04', dotColor: '#fbbc04' },
+      { key: 'visitScheduled', label: 'Visit Scheduled',   color: '#7c3aed', dotColor: '#7c3aed' },
+      { key: 'visitDone',      label: 'Visit Done',        color: '#00838f', dotColor: '#00838f' },
+      { key: 'purchased',      label: 'Purchased',         color: '#0d904f', dotColor: '#0d904f' },
+      { key: 'postSale',       label: 'Post-Sale',         color: '#137333', dotColor: '#137333' },
+      { key: 'lost',           label: 'Lost',              color: '#d93025', dotColor: '#d93025' }
+    ];
+
+    function populatePipeline() {
+      const p = BCH.pipeline;
+      const stagesContainer = document.getElementById('pipeline-stages');
+      const barChart = document.getElementById('pipeline-bar-chart');
+
+      // Find max for bar scaling (exclude IVR and purchased for active scale)
+      const activeValues = pipelineConfig.map(c => p[c.key]);
+      const maxVal = Math.max(...activeValues);
+
+      // Stage list with pipeline lines between stages
+      stagesContainer.innerHTML = pipelineConfig.map((cfg, i) => {
+        const count = p[cfg.key];
+        const barPct = Math.round((count / maxVal) * 100);
+        const isLast = i === pipelineConfig.length - 1;
+
+        return `
+          <div class="pipeline-stage">
+            <div class="pipeline-dot" style="background:${cfg.dotColor};"></div>
+            <span class="pipeline-stage-name">${cfg.label}</span>
+            <div class="pipeline-bar-wrap">
+              <div class="pipeline-bar-track">
+                <div class="pipeline-bar-fill" style="width:${barPct}%;background:${cfg.color};"></div>
+              </div>
+            </div>
+            <span class="pipeline-stage-count" style="color:${cfg.color};">${count.toLocaleString()}</span>
+          </div>
+          ${!isLast ? '<div class="pipeline-line"></div>' : ''}
+        `;
+      }).join('');
+
+      // Bar chart (horizontal, for active pipeline stages only, excluding IVR)
+      const chartData = pipelineConfig.filter(c => c.key !== 'ivrFiltered');
+      const chartMax = Math.max(...chartData.map(c => p[c.key]));
+
+      barChart.innerHTML = chartData.map(cfg => {
+        const count = p[cfg.key];
+        const pct = Math.round((count / chartMax) * 100);
+        return `
+          <div class="bar-chart-row">
+            <span class="bar-label" style="min-width:90px;font-size:10px;">${cfg.label}</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%;background:${cfg.color};">
+                ${count}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Summary stats
+      const active = p.leadCreated + p.bdcContacted + p.qualified + p.followUpActive + p.visitScheduled + p.visitDone;
+      document.getElementById('pipe-active').textContent = active;
+      document.getElementById('pipe-purchased').textContent = p.purchased.toLocaleString();
+      document.getElementById('pipe-lost').textContent = p.lost;
+      document.getElementById('pipe-ivr').textContent = p.ivrFiltered.toLocaleString();
+    }
+
+    // ===== TEAM SCORECARD =====
+    function populateTeam() {
+      const tbody = document.getElementById('team-tbody');
+      const alertsContainer = document.getElementById('underperformer-alerts');
+      const data = BCH.salesPerformance;
+
+      tbody.innerHTML = data.map(sp => {
+        const isUnderperformer = sp.contactRate < 75 || sp.convRate < 15 || sp.responseTime > 4;
+
+        const contClass = sp.contactRate >= 85 ? 'rate-good' : sp.contactRate >= 70 ? 'rate-warn' : 'rate-bad';
+        const convClass = sp.convRate >= 25 ? 'rate-good' : sp.convRate >= 15 ? 'rate-warn' : 'rate-bad';
+        const respClass = sp.responseTime <= 2 ? 'rate-good' : sp.responseTime <= 4 ? 'rate-warn' : 'rate-bad';
+
+        return `
+          <tr class="${isUnderperformer ? 'underperformer' : ''}">
+            <td class="name-cell">${sp.name}</td>
+            <td>${sp.leadsReceived}</td>
+            <td class="${contClass}">${sp.contactRate}%</td>
+            <td class="${convClass}">${sp.convRate}%</td>
+            <td style="font-weight:600;">${formatRupees(sp.revenue)}</td>
+            <td>${formatRupees(sp.avgTicket)}</td>
+            <td class="${respClass}">${sp.responseTime}h</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Underperformer alerts
+      const underperformers = data.filter(sp => sp.contactRate < 75 || sp.responseTime > 4);
+
+      if (underperformers.length === 0) {
+        alertsContainer.innerHTML = `
+          <div class="alert alert-success">
+            &#10003; All team members performing within targets today.
+          </div>
+        `;
+      } else {
+        alertsContainer.innerHTML = underperformers.map(sp => {
+          const issues = [];
+          if (sp.contactRate < 75) {
+            const uncontacted = sp.leadsReceived - sp.contacted;
+            issues.push(`Contact rate ${sp.contactRate}% &mdash; ${uncontacted} leads uncontacted`);
+          }
+          if (sp.responseTime > 4) {
+            issues.push(`Avg response time ${sp.responseTime}h (target: &lt;2h)`);
+          }
+          if (sp.convRate < 15) {
+            issues.push(`Conversion rate ${sp.convRate}% below threshold`);
+          }
+          return `
+            <div class="underperformer-card">
+              <div class="underperformer-title">
+                &#9888; ${sp.name} &mdash; Action Needed
+              </div>
+              <div class="underperformer-detail">
+                ${issues.map(i => '&bull; ' + i).join('<br>')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // ===== MANAGER ACTION HANDLERS =====
+    function handleManagerAction(action) {
+      const messages = {
+        reassign: 'Reassign Lead: Select a lead to reassign to another salesperson.',
+        uncontacted: 'Showing 4 uncontacted leads older than 4 hours.',
+        export: 'Exporting today\'s data as CSV...',
+        followups: 'Loading today\'s follow-up queue...'
+      };
+      showToast(messages[action] || 'Action triggered', 'info');
+    }
+
+    // ===== INITIALIZE ALL DATA =====
+    function init() {
+      populateLive();
+      populateSourceChart();
+      populateSalespersonCards();
+      populateROITable();
+      populatePipeline();
+      populateTeam();
+    }
+
+    // Run on DOM ready
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

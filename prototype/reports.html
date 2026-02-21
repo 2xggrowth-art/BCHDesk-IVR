@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Reports &amp; Analytics - BCH</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ===== PAGE-SPECIFIC ===== */
+    .report-date-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.18);
+      border-radius: var(--radius-full);
+      padding: 3px 10px;
+      font-size: 11px;
+      color: white;
+    }
+
+    /* ===== DAILY PULSE TABLE ===== */
+    .pulse-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 12px 8px;
+    }
+
+    .pulse-table {
+      width: 100%;
+      min-width: 520px;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+
+    .pulse-table th {
+      background: var(--gray-100);
+      padding: 8px 7px;
+      font-weight: 700;
+      color: var(--gray-700);
+      text-align: right;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      border-bottom: 2px solid var(--gray-300);
+    }
+
+    .pulse-table th:first-child {
+      text-align: left;
+      min-width: 130px;
+    }
+
+    .pulse-table td {
+      padding: 8px 7px;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-800);
+      text-align: right;
+    }
+
+    .pulse-table td:first-child {
+      text-align: left;
+      font-weight: 500;
+      color: var(--gray-700);
+    }
+
+    .pulse-table tr:last-child td { border-bottom: none; }
+
+    .pulse-table .today-col {
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .pulse-table .group-header td {
+      background: var(--gray-50);
+      font-weight: 700;
+      color: var(--gray-600);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 6px 7px;
+    }
+
+    .val-up { color: var(--success); }
+    .val-down { color: var(--danger); }
+
+    /* ===== SCORECARD TABLE ===== */
+    .scorecard-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 12px 8px;
+    }
+
+    .scorecard-table {
+      width: 100%;
+      min-width: 560px;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+
+    .scorecard-table th {
+      background: var(--gray-100);
+      padding: 8px 6px;
+      font-weight: 700;
+      color: var(--gray-700);
+      text-align: center;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid var(--gray-300);
+      white-space: nowrap;
+    }
+
+    .scorecard-table th:first-child { text-align: left; min-width: 80px; }
+
+    .scorecard-table td {
+      padding: 9px 6px;
+      border-bottom: 1px solid var(--gray-100);
+      text-align: center;
+      color: var(--gray-800);
+    }
+
+    .scorecard-table td:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .scorecard-table tr:last-child td { border-bottom: none; }
+
+    .rate-good { color: var(--success); font-weight: 700; }
+    .rate-warn { color: var(--warning); font-weight: 700; }
+    .rate-bad  { color: var(--danger);  font-weight: 700; }
+
+    .row-best { background: #f0fdf4; }
+    .row-worst { background: #fff5f5; }
+
+    .performer-badge {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-weight: 700;
+      display: inline-block;
+      margin-left: 3px;
+    }
+    .badge-best { background: var(--success-light); color: var(--success); }
+    .badge-worst { background: var(--danger-light); color: var(--danger); }
+
+    /* ===== SOURCE TABLE ===== */
+    .source-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 12px 8px;
+    }
+
+    .source-table {
+      width: 100%;
+      min-width: 520px;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+
+    .source-table th {
+      background: var(--gray-100);
+      padding: 8px 6px;
+      font-weight: 700;
+      color: var(--gray-700);
+      text-align: center;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid var(--gray-300);
+      white-space: nowrap;
+    }
+
+    .source-table th:first-child { text-align: left; min-width: 90px; }
+
+    .source-table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--gray-100);
+      text-align: center;
+      color: var(--gray-800);
+    }
+
+    .source-table td:first-child { text-align: left; font-weight: 600; }
+    .source-table tr:last-child td { border-bottom: none; }
+
+    .source-table .total-row td {
+      font-weight: 700;
+      background: var(--gray-50);
+      border-top: 2px solid var(--gray-300);
+      color: var(--gray-900);
+    }
+
+    .source-table .best-row { background: #f0fdf4; }
+
+    .roi-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--success-light);
+      color: var(--success);
+    }
+
+    /* ===== BEST SOURCE CARD ===== */
+    .highlight-card {
+      background: linear-gradient(135deg, #0d904f 0%, #137333 100%);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin: 8px 12px;
+    }
+
+    .highlight-card .hc-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    .highlight-card .hc-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .highlight-card .hc-stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .highlight-card .hc-stat {
+      text-align: center;
+    }
+
+    .highlight-card .hc-num {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .highlight-card .hc-desc {
+      font-size: 10px;
+      opacity: 0.8;
+    }
+
+    /* ===== LOST DEALS ===== */
+    .lost-chart {
+      margin: 0 12px 8px;
+    }
+
+    .lost-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+    }
+
+    .lost-bar-label {
+      font-size: 11px;
+      color: var(--gray-700);
+      min-width: 112px;
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .lost-bar-track {
+      flex: 1;
+      height: 22px;
+      background: var(--gray-100);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .lost-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+      white-space: nowrap;
+      transition: width 0.6s ease;
+    }
+
+    .lost-bar-count {
+      font-size: 11px;
+      color: var(--gray-600);
+      min-width: 26px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .lost-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 12px 8px;
+    }
+
+    .lost-table {
+      width: 100%;
+      min-width: 460px;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+
+    .lost-table th {
+      background: var(--gray-100);
+      padding: 8px 6px;
+      font-weight: 700;
+      color: var(--gray-700);
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid var(--gray-300);
+      white-space: nowrap;
+    }
+
+    .lost-table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-800);
+      vertical-align: top;
+    }
+
+    .lost-table tr:last-child td { border-bottom: none; }
+
+    .recovery-text {
+      font-size: 10px;
+      color: var(--primary);
+      font-style: italic;
+    }
+
+    .lost-revenue-card {
+      background: var(--danger-light);
+      border-left: 4px solid var(--danger);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin: 8px 12px;
+    }
+
+    .lost-revenue-card .lrc-label {
+      font-size: 11px;
+      color: var(--danger);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .lost-revenue-card .lrc-amount {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--danger);
+      line-height: 1.2;
+      margin: 4px 0;
+    }
+
+    .lost-revenue-card .lrc-note {
+      font-size: 11px;
+      color: #8b1a1a;
+    }
+
+    /* ===== PEAK HOURS ===== */
+    .peak-chart {
+      margin: 0 12px 8px;
+    }
+
+    .peak-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .peak-bar-label {
+      font-size: 11px;
+      color: var(--gray-700);
+      min-width: 42px;
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .peak-bar-track {
+      flex: 1;
+      height: 24px;
+      background: var(--gray-100);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .peak-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+      transition: width 0.6s ease;
+    }
+
+    .peak-bar-fill.normal  { background: var(--primary); }
+    .peak-bar-fill.high    { background: var(--warning); }
+    .peak-bar-fill.peak    { background: var(--danger); }
+
+    .peak-count {
+      font-size: 11px;
+      color: var(--gray-600);
+      min-width: 26px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .peak-label-tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      min-width: 34px;
+      text-align: center;
+    }
+
+    .peak-tag-peak    { background: var(--danger-light); color: var(--danger); }
+    .peak-tag-high    { background: var(--warning-light); color: var(--warning); }
+    .peak-tag-normal  { background: var(--gray-100); color: var(--gray-600); }
+
+    .recommendation-card {
+      background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin: 8px 12px;
+    }
+
+    .recommendation-card .rc-icon {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .recommendation-card .rc-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .recommendation-card .rc-text {
+      font-size: 12px;
+      opacity: 0.92;
+      line-height: 1.5;
+    }
+
+    .recommendation-card .rc-highlight {
+      background: rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .peak-vs-offpeak {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 8px 12px;
+    }
+
+    .pvop-box {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+
+    .pvop-box .pvop-num {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .pvop-box .pvop-label {
+      font-size: 10px;
+      color: var(--gray-600);
+      margin-top: 2px;
+    }
+
+    .pvop-box .pvop-sub {
+      font-size: 10px;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    /* ===== LEGEND ===== */
+    .chart-legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 4px 12px 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--gray-700);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ===== REPORT HEADER CARD ===== */
+    .report-header-card {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .report-header-card .rhc-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .report-header-card .rhc-sub {
+      font-size: 11px;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    .auto-badge {
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--primary);
+      color: white;
+      border-radius: var(--radius-full);
+      padding: 3px 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    /* ===== BOTTOM NAV FOR TABS ===== */
+    .bottom-nav .nav-item.active {
+      color: var(--primary);
+    }
+
+    /* Scroll area spacing */
+    .tab-panel > :last-child {
+      margin-bottom: 0;
+    }
+
+    /* ===== RESPONSIVE SCROLL HINT ===== */
+    .scroll-hint {
+      font-size: 10px;
+      color: var(--gray-500);
+      text-align: right;
+      padding: 0 14px 4px;
+      font-style: italic;
+    }
+
+    /* ===== TOTAL ROW ===== */
+    .data-table .total-row td {
+      font-weight: 700;
+      background: var(--gray-50);
+      border-top: 2px solid var(--gray-300);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <a href="index.html" class="back-btn" aria-label="Back to home">&#x2039;</a>
+      <div>
+        <h1>Reports &amp; Analytics</h1>
+        <div class="subtitle">BCH Lead Management System</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <span class="report-date-badge">&#x1f4c5; Feb 21, 2026</span>
+    </div>
+  </div>
+
+  <!-- TAB NAV -->
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="tab-pulse"     onclick="switchReportTab('tab-pulse')"     role="tab" aria-selected="true">Daily Pulse</button>
+    <button class="tab-btn"        data-tab="tab-scorecard" onclick="switchReportTab('tab-scorecard')" role="tab">Scorecard</button>
+    <button class="tab-btn"        data-tab="tab-sources"   onclick="switchReportTab('tab-sources')"   role="tab">Sources</button>
+    <button class="tab-btn"        data-tab="tab-lost"      onclick="switchReportTab('tab-lost')"      role="tab">Lost Deals</button>
+    <button class="tab-btn"        data-tab="tab-peak"      onclick="switchReportTab('tab-peak')"      role="tab">Peak Hours</button>
+  </nav>
+
+  <!-- PAGE CONTENT -->
+  <div class="page-content">
+
+    <!-- ============================
+         TAB 1: DAILY PULSE
+         ============================ -->
+    <div class="tab-panel active" id="tab-pulse" role="tabpanel">
+
+      <div class="report-header-card">
+        <div>
+          <div class="rhc-title">&#x1f4ca; Daily Pulse Report</div>
+          <div class="rhc-sub">Friday, February 21, 2026</div>
+        </div>
+        <span class="auto-badge">&#x23f0; Auto 9 PM</span>
+      </div>
+
+      <p class="scroll-hint">&#x2192; Scroll right for all columns</p>
+
+      <div class="pulse-table-wrap">
+        <table class="pulse-table" id="pulse-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th class="today-col">Today</th>
+              <th>Yesterday</th>
+              <th>This Week</th>
+              <th>This Month</th>
+            </tr>
+          </thead>
+          <tbody id="pulse-tbody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-pulse -->
+
+
+    <!-- ============================
+         TAB 2: SCORECARD
+         ============================ -->
+    <div class="tab-panel" id="tab-scorecard" role="tabpanel">
+
+      <div class="report-header-card">
+        <div>
+          <div class="rhc-title">&#x1f3c6; Salesperson Lead Scorecard</div>
+          <div class="rhc-sub">Week of Feb 17 - 21, 2026</div>
+        </div>
+        <span class="auto-badge">Weekly</span>
+      </div>
+
+      <!-- Legend -->
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div> &gt;80% contact rate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div> &lt;70% contact rate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fffbeb; border:1px solid #e37400;"></div> Best performer</div>
+      </div>
+
+      <p class="scroll-hint">&#x2192; Scroll right for all columns</p>
+
+      <div class="scorecard-wrap">
+        <table class="scorecard-table" id="scorecard-table">
+          <thead>
+            <tr>
+              <th>Salesperson</th>
+              <th>Leads</th>
+              <th>Contacted</th>
+              <th>Contact%</th>
+              <th>Visits</th>
+              <th>Purchased</th>
+              <th>Conv%</th>
+              <th>Revenue</th>
+              <th>Avg Ticket</th>
+              <th>Response</th>
+            </tr>
+          </thead>
+          <tbody id="scorecard-tbody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-scorecard -->
+
+
+    <!-- ============================
+         TAB 3: SOURCE ATTRIBUTION
+         ============================ -->
+    <div class="tab-panel" id="tab-sources" role="tabpanel">
+
+      <div class="report-header-card">
+        <div>
+          <div class="rhc-title">&#x1f4f1; Source Attribution</div>
+          <div class="rhc-sub">February 2026 &mdash; All channels organic</div>
+        </div>
+        <span class="auto-badge">Monthly</span>
+      </div>
+
+      <!-- Best source highlight card (populated by JS) -->
+      <div id="best-source-card"></div>
+
+      <p class="scroll-hint">&#x2192; Scroll right for all columns</p>
+
+      <div class="source-wrap">
+        <table class="source-table" id="source-table">
+          <thead>
+            <tr>
+              <th>Source Profile</th>
+              <th>Calls</th>
+              <th>Qualified</th>
+              <th>Visits</th>
+              <th>Purchases</th>
+              <th>Revenue</th>
+              <th>Cost/Lead</th>
+              <th>ROI</th>
+            </tr>
+          </thead>
+          <tbody id="source-tbody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-sources -->
+
+
+    <!-- ============================
+         TAB 4: LOST DEAL ANALYSIS
+         ============================ -->
+    <div class="tab-panel" id="tab-lost" role="tabpanel">
+
+      <div class="report-header-card">
+        <div>
+          <div class="rhc-title">&#x1f4c9; Lost Deal Analysis</div>
+          <div class="rhc-sub">February 2026 &mdash; 64 deals lost</div>
+        </div>
+        <span class="auto-badge">Monthly</span>
+      </div>
+
+      <!-- Total lost revenue card (populated by JS) -->
+      <div id="lost-revenue-card"></div>
+
+      <!-- Visual pie-style bar chart -->
+      <div class="card" style="margin-bottom:4px;">
+        <div class="card-header">
+          <span class="card-title">Loss Reason Breakdown</span>
+          <span class="text-xs text-muted">by count</span>
+        </div>
+        <div id="lost-chart" class="lost-chart"></div>
+      </div>
+
+      <!-- Detail table with recovery actions -->
+      <p class="scroll-hint">&#x2192; Scroll right for all columns</p>
+      <div class="lost-table-wrap">
+        <table class="lost-table" id="lost-table">
+          <thead>
+            <tr>
+              <th>Reason</th>
+              <th>Count</th>
+              <th>%</th>
+              <th>Rev Lost</th>
+              <th>Recovery Action</th>
+            </tr>
+          </thead>
+          <tbody id="lost-tbody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-lost -->
+
+
+    <!-- ============================
+         TAB 5: PEAK HOURS
+         ============================ -->
+    <div class="tab-panel" id="tab-peak" role="tabpanel">
+
+      <div class="report-header-card">
+        <div>
+          <div class="rhc-title">&#x23f1; Peak Hour Analysis</div>
+          <div class="rhc-sub">Week of Feb 17 - 21, 2026</div>
+        </div>
+        <span class="auto-badge">Weekly</span>
+      </div>
+
+      <!-- Recommendation card -->
+      <div class="recommendation-card" id="recommendation-card">
+        <div class="rc-icon">&#x26a0;&#xfe0f;</div>
+        <div class="rc-title">Staffing Recommendation</div>
+        <div class="rc-text">
+          Call volume spikes at <strong>12 PM</strong> (78 calls) and <strong>4 PM</strong> (72 calls). Current single-agent coverage creates missed-call risk during these windows.
+        </div>
+        <div class="rc-highlight">
+          &#x1f4de; 2 BDC agents MUST be available<br>
+          11 AM&ndash;1 PM &nbsp;&#x26ab;&nbsp; 3 PM&ndash;5 PM
+        </div>
+      </div>
+
+      <!-- Peak vs off-peak comparison (populated by JS) -->
+      <div class="peak-vs-offpeak" id="peak-vs-offpeak"></div>
+
+      <!-- Legend -->
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div> PEAK (&gt;70 calls)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div> HIGH (55-70 calls)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--primary)"></div> Normal</div>
+      </div>
+
+      <!-- Bar chart -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Calls by Hour (avg / day)</span>
+        </div>
+        <div id="peak-chart" class="peak-chart"></div>
+      </div>
+
+    </div><!-- /tab-peak -->
+
+  </div><!-- /page-content -->
+
+
+  <!-- BOTTOM NAV (5 tabs) -->
+  <nav class="bottom-nav" role="navigation" aria-label="Report sections">
+    <button class="nav-item active" id="nav-pulse"     onclick="switchReportTab('tab-pulse')"     aria-label="Daily Pulse">
+      <span class="nav-icon">&#x1f4c8;</span>
+      <span>Pulse</span>
+    </button>
+    <button class="nav-item" id="nav-scorecard" onclick="switchReportTab('tab-scorecard')" aria-label="Scorecard">
+      <span class="nav-icon">&#x1f3c6;</span>
+      <span>Scorecard</span>
+    </button>
+    <button class="nav-item" id="nav-sources"   onclick="switchReportTab('tab-sources')"   aria-label="Sources">
+      <span class="nav-icon">&#x1f4f1;</span>
+      <span>Sources</span>
+    </button>
+    <button class="nav-item" id="nav-lost"      onclick="switchReportTab('tab-lost')"      aria-label="Lost Deals">
+      <span class="nav-icon">&#x1f4c9;</span>
+      <span>Lost</span>
+    </button>
+    <button class="nav-item" id="nav-peak"      onclick="switchReportTab('tab-peak')"      aria-label="Peak Hours">
+      <span class="nav-icon">&#x23f1;</span>
+      <span>Peak</span>
+    </button>
+  </nav>
+
+
+  <script src="data.js"></script>
+  <script>
+    // =============================================
+    // TAB SWITCHING (reports-specific override)
+    // =============================================
+    const tabNavMap = {
+      'tab-pulse':     'nav-pulse',
+      'tab-scorecard': 'nav-scorecard',
+      'tab-sources':   'nav-sources',
+      'tab-lost':      'nav-lost',
+      'tab-peak':      'nav-peak'
+    };
+
+    function switchReportTab(tabId) {
+      // Tab nav buttons (top)
+      document.querySelectorAll('.tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
+      const topBtn = document.querySelector(`.tab-nav [data-tab="${tabId}"]`);
+      if (topBtn) topBtn.classList.add('active');
+
+      // Tab panels
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+
+      // Bottom nav items
+      document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+      const navId = tabNavMap[tabId];
+      if (navId) document.getElementById(navId).classList.add('active');
+    }
+
+
+    // =============================================
+    // TAB 1: DAILY PULSE
+    // =============================================
+    (function buildPulseTable() {
+      const s = BCH.todayStats;
+
+      // Derive yesterday and week/month values
+      const rows = [
+        // [label, todayVal, yesterdayVal, weekVal, monthVal, isRupees]
+        { group: 'CALL VOLUME' },
+        { label: 'Total calls',           t: s.totalCalls,        y: 98,   w: s.totalCalls * 5,   m: s.totalCalls * 22  },
+        { label: 'IVR filtered',           t: s.ivrFiltered,       y: 61,   w: s.ivrFiltered * 5,  m: s.ivrFiltered * 22 },
+        { label: 'Missed calls',           t: s.missed,            y: 9,    w: s.missed * 5,       m: s.missed * 22,       danger: true },
+        { group: 'LEADS' },
+        { label: 'Leads created',          t: s.leadsCreated,      y: 30,   w: s.leadsCreated * 5, m: s.leadsCreated * 22 },
+        { label: 'Qualified leads',        t: s.leadsQualified,    y: 25,   w: s.leadsQualified * 5, m: s.leadsQualified * 22 },
+        { label: 'Leads assigned',         t: s.leadsAssigned,     y: 25,   w: s.leadsAssigned * 5, m: s.leadsAssigned * 22 },
+        { label: 'Leads contacted',        t: s.leadsContacted,    y: 16,   w: s.leadsContacted * 5, m: s.leadsContacted * 22 },
+        { group: 'WALK-INS' },
+        { label: 'Walk-ins (total)',        t: s.walkInsTotal,      y: 40,   w: s.walkInsTotal * 5,  m: s.walkInsTotal * 22 },
+        { label: 'Walk-ins from leads',    t: s.walkInsFromLeads,  y: 10,   w: s.walkInsFromLeads * 5, m: s.walkInsFromLeads * 22 },
+        { group: 'SALES' },
+        { label: 'Purchases',              t: s.purchased,         y: 28,   w: s.purchased * 5,    m: s.purchased * 22 },
+        { label: 'Revenue (total)',         t: s.revenueTotal,      y: 460000, w: s.revenueTotal * 5, m: s.revenueTotal * 22, rupees: true },
+        { label: 'Revenue from leads',     t: s.revenueFromLeads,  y: 145000, w: s.revenueFromLeads * 5, m: s.revenueFromLeads * 22, rupees: true },
+        { group: 'FOLLOW-UPS' },
+        { label: 'Follow-up compliance %', t: Math.round((s.followUpsCompleted / s.followUpsDueToday) * 100) + '%',
+                                            y: '72%', w: '68%', m: '71%', pct: true }
+      ];
+
+      const tbody = document.getElementById('pulse-tbody');
+      let html = '';
+
+      rows.forEach(row => {
+        if (row.group) {
+          html += `<tr class="group-header"><td colspan="5">${row.group}</td></tr>`;
+          return;
+        }
+
+        const fmtVal = (v, r, p) => {
+          if (p) return v; // already a string percent
+          if (r) return formatRupees(v);
+          return v.toLocaleString();
+        };
+
+        const todayFmt = fmtVal(row.t, row.rupees, row.pct);
+        const yestFmt  = fmtVal(row.y, row.rupees, row.pct);
+        const weekFmt  = fmtVal(Math.round(row.w), row.rupees, row.pct);
+        const monthFmt = fmtVal(Math.round(row.m), row.rupees, row.pct);
+
+        // Compare today vs yesterday trend arrow (skip pct rows)
+        let trend = '';
+        if (!row.pct && typeof row.t === 'number' && typeof row.y === 'number') {
+          if (row.t > row.y) trend = row.danger ? ' <span class="val-down">&#x2191;</span>' : ' <span class="val-up">&#x2191;</span>';
+          else if (row.t < row.y) trend = row.danger ? ' <span class="val-up">&#x2193;</span>' : ' <span class="val-down">&#x2193;</span>';
+        }
+
+        html += `
+          <tr>
+            <td>${row.label}</td>
+            <td class="today-col">${todayFmt}${trend}</td>
+            <td>${yestFmt}</td>
+            <td>${weekFmt}</td>
+            <td>${monthFmt}</td>
+          </tr>`;
+      });
+
+      tbody.innerHTML = html;
+    })();
+
+
+    // =============================================
+    // TAB 2: SCORECARD
+    // =============================================
+    (function buildScorecard() {
+      const data = BCH.salesPerformance;
+
+      // Find best (highest revenue) and worst (lowest contact rate)
+      let bestRevIdx = 0, worstContactIdx = 0;
+      data.forEach((s, i) => {
+        if (s.revenue > data[bestRevIdx].revenue) bestRevIdx = i;
+        if (s.contactRate < data[worstContactIdx].contactRate) worstContactIdx = i;
+      });
+
+      const tbody = document.getElementById('scorecard-tbody');
+      let html = '';
+
+      data.forEach((s, i) => {
+        const isBest  = i === bestRevIdx;
+        const isWorst = i === worstContactIdx;
+
+        const rateClass = s.contactRate >= 80 ? 'rate-good'
+                        : s.contactRate >= 70 ? 'rate-warn'
+                        : 'rate-bad';
+
+        const rowClass = isBest ? 'row-best' : (isWorst ? 'row-worst' : '');
+
+        const badge = isBest
+          ? '<span class="performer-badge badge-best">TOP</span>'
+          : (isWorst ? '<span class="performer-badge badge-worst">LOW</span>' : '');
+
+        html += `
+          <tr class="${rowClass}">
+            <td>${s.name}${badge}</td>
+            <td>${s.leadsReceived}</td>
+            <td>${s.contacted}</td>
+            <td class="${rateClass}">${s.contactRate}%</td>
+            <td>${s.visits}</td>
+            <td>${s.purchased}</td>
+            <td>${s.convRate}%</td>
+            <td>${formatRupees(s.revenue)}</td>
+            <td>${formatRupees(s.avgTicket)}</td>
+            <td>${s.responseTime}h</td>
+          </tr>`;
+      });
+
+      // Totals row
+      const totals = data.reduce((acc, s) => {
+        acc.leadsReceived += s.leadsReceived;
+        acc.contacted     += s.contacted;
+        acc.visits        += s.visits;
+        acc.purchased     += s.purchased;
+        acc.revenue       += s.revenue;
+        return acc;
+      }, { leadsReceived: 0, contacted: 0, visits: 0, purchased: 0, revenue: 0 });
+
+      const totalContactRate = Math.round((totals.contacted / totals.leadsReceived) * 100);
+      const totalConvRate    = Math.round((totals.purchased / totals.leadsReceived) * 100);
+      const avgTicket        = Math.round(totals.revenue / totals.purchased);
+
+      html += `
+        <tr class="total-row" style="font-weight:700;background:var(--gray-50);border-top:2px solid var(--gray-300);">
+          <td>TOTAL</td>
+          <td>${totals.leadsReceived}</td>
+          <td>${totals.contacted}</td>
+          <td>${totalContactRate}%</td>
+          <td>${totals.visits}</td>
+          <td>${totals.purchased}</td>
+          <td>${totalConvRate}%</td>
+          <td>${formatRupees(totals.revenue)}</td>
+          <td>${formatRupees(avgTicket)}</td>
+          <td>&#x2014;</td>
+        </tr>`;
+
+      document.getElementById('scorecard-tbody').innerHTML = html;
+    })();
+
+
+    // =============================================
+    // TAB 3: SOURCE ATTRIBUTION
+    // =============================================
+    (function buildSources() {
+      const data = BCH.contentROI;
+
+      // Totals
+      const totals = data.reduce((acc, r) => {
+        acc.calls     += r.calls;
+        acc.qualified += r.qualified;
+        acc.visits    += r.visits;
+        acc.purchases += r.purchases;
+        acc.revenue   += r.revenue;
+        return acc;
+      }, { calls: 0, qualified: 0, visits: 0, purchases: 0, revenue: 0 });
+
+      // Find best source by revenue
+      let bestIdx = 0;
+      data.forEach((r, i) => { if (r.revenue > data[bestIdx].revenue) bestIdx = i; });
+      const best = data[bestIdx];
+
+      // Best source highlight card
+      document.getElementById('best-source-card').innerHTML = `
+        <div class="highlight-card">
+          <div class="hc-label">&#x1f31f; Best Performing Source</div>
+          <div class="hc-title">${best.profile}</div>
+          <div class="hc-stats">
+            <div class="hc-stat">
+              <div class="hc-num">${best.calls.toLocaleString()}</div>
+              <div class="hc-desc">Calls</div>
+            </div>
+            <div class="hc-stat">
+              <div class="hc-num">${best.qualified}</div>
+              <div class="hc-desc">Qualified</div>
+            </div>
+            <div class="hc-stat">
+              <div class="hc-num">${best.purchases}</div>
+              <div class="hc-desc">Sales</div>
+            </div>
+            <div class="hc-stat">
+              <div class="hc-num">${formatRupees(best.revenue)}</div>
+              <div class="hc-desc">Revenue</div>
+            </div>
+          </div>
+        </div>`;
+
+      // Table rows
+      const tbody = document.getElementById('source-tbody');
+      let html = '';
+
+      data.forEach((r, i) => {
+        const isBest = i === bestIdx;
+        const qualPct = Math.round((r.qualified / r.calls) * 100);
+        html += `
+          <tr class="${isBest ? 'best-row' : ''}">
+            <td>${r.profile}${isBest ? ' <span style="font-size:10px;">&#x2605;</span>' : ''}</td>
+            <td>${r.calls.toLocaleString()}</td>
+            <td>${r.qualified} <span class="text-xs text-muted">(${qualPct}%)</span></td>
+            <td>${r.visits}</td>
+            <td>${r.purchases}</td>
+            <td>${formatRupees(r.revenue)}</td>
+            <td><span class="text-muted" style="font-size:10px;">Rs.0</span></td>
+            <td><span class="roi-tag">&#x221e;</span></td>
+          </tr>`;
+      });
+
+      // Totals row
+      const totalQualPct = Math.round((totals.qualified / totals.calls) * 100);
+      html += `
+        <tr class="total-row">
+          <td>TOTAL</td>
+          <td>${totals.calls.toLocaleString()}</td>
+          <td>${totals.qualified} <span class="text-xs text-muted">(${totalQualPct}%)</span></td>
+          <td>${totals.visits}</td>
+          <td>${totals.purchases}</td>
+          <td>${formatRupees(totals.revenue)}</td>
+          <td>Rs.0</td>
+          <td><span class="roi-tag">&#x221e;</span></td>
+        </tr>`;
+
+      tbody.innerHTML = html;
+    })();
+
+
+    // =============================================
+    // TAB 4: LOST DEALS
+    // =============================================
+    (function buildLostDeals() {
+      const data = BCH.lostDeals;
+
+      const recoveryActions = {
+        'Family approval': 'Run SOP #8 follow-up sequence (auto-trigger day after)',
+        'Too expensive':   'Present alternatives &amp; EMI 999 push; show total cost saved',
+        'Not in stock':    'Inventory alert to manager; offer pre-order or delivery ETA',
+        'EMI rejected':    'Try alternate finance partner; offer reduced down-payment',
+        'Competitor':      'Send competitive comparison sheet; highlight after-sale service',
+        'Just looking':    'Add to 30-day nurture drip; invite for weekend event',
+        'Outstation':      'Offer doorstep delivery; share delivery logistics info',
+        'Other':           'Flag for manager review; log custom note'
+      };
+
+      // Bar chart colors
+      const colors = ['#d93025','#e37400','#1a73e8','#7c3aed','#0d904f','#e91e63','#795548','#9aa0a6'];
+
+      // Total lost revenue
+      const totalLost = data.reduce((s, r) => s + r.revenueLost, 0);
+      const totalCount = data.reduce((s, r) => s + r.count, 0);
+      const maxCount   = Math.max(...data.map(r => r.count));
+
+      // Lost revenue card
+      document.getElementById('lost-revenue-card').innerHTML = `
+        <div class="lost-revenue-card">
+          <div class="lrc-label">&#x26a0; Total Revenue Lost This Month</div>
+          <div class="lrc-amount">${formatRupees(totalLost)}</div>
+          <div class="lrc-note">${totalCount} deals lost &middot; Avg loss per deal: ${formatRupees(Math.round(totalLost / totalCount))}</div>
+        </div>`;
+
+      // Pie-style bar chart
+      let chartHtml = '';
+      data.forEach((r, i) => {
+        const widthPct = Math.round((r.count / maxCount) * 100);
+        chartHtml += `
+          <div class="lost-bar-row">
+            <div class="lost-bar-label">${r.reason}</div>
+            <div class="lost-bar-track">
+              <div class="lost-bar-fill" style="width:${widthPct}%;background:${colors[i]}">
+                ${r.pct}%
+              </div>
+            </div>
+            <div class="lost-bar-count">${r.count}</div>
+          </div>`;
+      });
+      document.getElementById('lost-chart').innerHTML = chartHtml;
+
+      // Detail table
+      const tbody = document.getElementById('lost-tbody');
+      let html = '';
+
+      data.forEach((r, i) => {
+        const action = recoveryActions[r.reason] || 'Review with manager';
+        html += `
+          <tr>
+            <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[i]};margin-right:5px;"></span>${r.reason}</td>
+            <td>${r.count}</td>
+            <td>${r.pct}%</td>
+            <td>${formatRupees(r.revenueLost)}</td>
+            <td class="recovery-text">${action}</td>
+          </tr>`;
+      });
+
+      // Totals row
+      html += `
+        <tr style="font-weight:700;background:var(--gray-50);border-top:2px solid var(--gray-300);">
+          <td>TOTAL</td>
+          <td>${totalCount}</td>
+          <td>100%</td>
+          <td>${formatRupees(totalLost)}</td>
+          <td></td>
+        </tr>`;
+
+      tbody.innerHTML = html;
+    })();
+
+
+    // =============================================
+    // TAB 5: PEAK HOURS
+    // =============================================
+    (function buildPeakHours() {
+      const data = BCH.peakHours;
+      const maxCalls = Math.max(...data.map(h => h.calls));
+
+      // Peak thresholds
+      const PEAK_THRESHOLD = 70;
+      const HIGH_THRESHOLD = 55;
+
+      // Peak vs off-peak stats
+      const peakHours    = data.filter(h => h.calls >= PEAK_THRESHOLD);
+      const offPeakHours = data.filter(h => h.calls < HIGH_THRESHOLD);
+
+      const peakAvg    = Math.round(peakHours.reduce((s, h) => s + h.calls, 0) / peakHours.length);
+      const offPeakAvg = Math.round(offPeakHours.reduce((s, h) => s + h.calls, 0) / offPeakHours.length);
+      const peakPct    = Math.round((peakAvg / offPeakAvg - 1) * 100);
+
+      document.getElementById('peak-vs-offpeak').innerHTML = `
+        <div class="pvop-box">
+          <div class="pvop-num" style="color:var(--danger)">${peakAvg}</div>
+          <div class="pvop-label">Peak hour avg calls</div>
+          <div class="pvop-sub" style="color:var(--danger)">12 PM &amp; 4 PM</div>
+        </div>
+        <div class="pvop-box">
+          <div class="pvop-num" style="color:var(--gray-600)">${offPeakAvg}</div>
+          <div class="pvop-label">Off-peak hour avg calls</div>
+          <div class="pvop-sub" style="color:var(--success)">${peakPct}% less volume</div>
+        </div>`;
+
+      // Bar chart
+      let chartHtml = '';
+      data.forEach(h => {
+        const widthPct = Math.round((h.calls / maxCalls) * 100);
+        const isPeak = h.calls >= PEAK_THRESHOLD;
+        const isHigh = !isPeak && h.calls >= HIGH_THRESHOLD;
+
+        const fillClass = isPeak ? 'peak' : (isHigh ? 'high' : 'normal');
+        const tagClass  = isPeak ? 'peak-tag-peak' : (isHigh ? 'peak-tag-high' : 'peak-tag-normal');
+        const tagText   = isPeak ? 'PEAK' : (isHigh ? 'HIGH' : 'normal');
+
+        chartHtml += `
+          <div class="peak-bar-row">
+            <div class="peak-bar-label">${h.hour}</div>
+            <div class="peak-bar-track">
+              <div class="peak-bar-fill ${fillClass}" style="width:${widthPct}%">
+                ${h.calls}
+              </div>
+            </div>
+            <span class="peak-label-tag ${tagClass}">${tagText}</span>
+          </div>`;
+      });
+
+      document.getElementById('peak-chart').innerHTML = chartHtml;
+    })();
+
+  </script>
+</body>
+</html>

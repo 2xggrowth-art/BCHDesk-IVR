@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Automation Engine - BCH</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ===== AUTOMATION PAGE SPECIFIC ===== */
+
+    /* Summary strip */
+    .summary-strip {
+      display: flex;
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      padding: 10px 16px;
+      gap: 0;
+    }
+
+    .summary-stat {
+      flex: 1;
+      text-align: center;
+      border-right: 1px solid var(--gray-200);
+    }
+
+    .summary-stat:last-child { border-right: none; }
+
+    .summary-stat .s-num {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .summary-stat .s-num.all   { color: var(--primary); }
+    .summary-stat .s-num.on    { color: var(--success); }
+    .summary-stat .s-num.off   { color: var(--gray-500); }
+
+    .summary-stat .s-label {
+      font-size: 10px;
+      color: var(--gray-600);
+      margin-top: 1px;
+    }
+
+    /* Filter chips row */
+    .filter-row {
+      display: flex;
+      gap: 7px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .filter-row::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      padding: 5px 13px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1.5px solid var(--gray-300);
+      background: var(--white);
+      color: var(--gray-700);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.18s;
+      flex-shrink: 0;
+    }
+
+    .filter-chip:active { transform: scale(0.93); }
+
+    .filter-chip.active-filter {
+      background: var(--primary);
+      color: var(--white);
+      border-color: var(--primary);
+    }
+
+    /* Rule cards */
+    .rule-list {
+      padding: 8px 0 80px;
+    }
+
+    .rule-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 13px 14px;
+      margin: 7px 12px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--gray-300);
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+    }
+
+    /* Type colours for left border */
+    .rule-card.type-whatsapp      { border-left-color: #25d366; }
+    .rule-card.type-notification  { border-left-color: var(--primary); }
+    .rule-card.type-escalation    { border-left-color: var(--danger); }
+    .rule-card.type-reminder      { border-left-color: var(--warning); }
+    .rule-card.type-sequence      { border-left-color: var(--purple); }
+    .rule-card.type-system        { border-left-color: var(--gray-500); }
+
+    .rule-card.rule-paused { opacity: 0.55; }
+
+    .rule-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .rule-icon.type-whatsapp      { background: #dcf8e1; }
+    .rule-icon.type-notification  { background: var(--primary-light); }
+    .rule-icon.type-escalation    { background: var(--danger-light); }
+    .rule-icon.type-reminder      { background: var(--warning-light); }
+    .rule-icon.type-sequence      { background: var(--purple-light); }
+    .rule-icon.type-system        { background: var(--gray-100); }
+
+    .rule-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .rule-meta-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .rule-num {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray-500);
+    }
+
+    .rule-type-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .rule-type-badge.type-whatsapp      { background: #dcf8e1; color: #128c3e; }
+    .rule-type-badge.type-notification  { background: var(--primary-light); color: var(--primary); }
+    .rule-type-badge.type-escalation    { background: var(--danger-light); color: var(--danger); }
+    .rule-type-badge.type-reminder      { background: var(--warning-light); color: var(--warning); }
+    .rule-type-badge.type-sequence      { background: var(--purple-light); color: var(--purple); }
+    .rule-type-badge.type-system        { background: var(--gray-100); color: var(--gray-600); }
+
+    .rule-trigger {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1.35;
+      margin-bottom: 3px;
+    }
+
+    .rule-action {
+      font-size: 12px;
+      color: var(--gray-700);
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .rule-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .timing-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 99px;
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    /* Toggle switch */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      cursor: pointer;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--gray-300);
+      border-radius: 11px;
+      transition: background 0.2s;
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: var(--white);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+    }
+
+    .toggle input:checked ~ .toggle-track { background: var(--success); }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+    /* ===== ESCALATION TAB ===== */
+    .escalation-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 14px 16px 6px;
+    }
+
+    .flow-connector-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 2px 0;
+    }
+
+    .flow-connector-arrow .fc-line {
+      width: 2px;
+      height: 14px;
+      background: var(--gray-300);
+    }
+
+    .flow-connector-arrow .fc-arrow {
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 7px solid var(--gray-400);
+    }
+
+    .flow-node-timing {
+      font-size: 11px;
+      color: var(--gray-500);
+      text-align: center;
+      padding: 3px 0;
+      font-style: italic;
+    }
+
+    .flow-node .flow-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .flow-node .flow-label.lbl-trigger { color: var(--gray-600); }
+    .flow-node .flow-label.lbl-action  { color: var(--warning); }
+    .flow-node .flow-label.lbl-escalate { color: var(--danger); }
+    .flow-node .flow-label.lbl-options  { color: var(--success); }
+
+    .flow-node .flow-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-900);
+      line-height: 1.4;
+    }
+
+    .flow-node .flow-sub {
+      font-size: 12px;
+      color: var(--gray-600);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .flow-options {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .flow-option-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* ===== WHATSAPP TAB ===== */
+    .wa-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      margin: 8px 12px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .wa-card-header {
+      background: #075e54;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .wa-template-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.3px;
+    }
+
+    .wa-trigger-tag {
+      font-size: 10px;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 600;
+    }
+
+    .wa-card-body {
+      padding: 12px 14px;
+      background: #e5ddd5;
+    }
+
+    .wa-bubble {
+      background: #fff;
+      border-radius: 0 10px 10px 10px;
+      padding: 10px 12px;
+      max-width: 92%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+      position: relative;
+    }
+
+    .wa-bubble::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: 0;
+      height: 0;
+      border-top: 8px solid #fff;
+      border-left: 8px solid transparent;
+    }
+
+    .wa-bubble-text {
+      font-size: 12.5px;
+      color: #111;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    .wa-bubble-time {
+      font-size: 10px;
+      color: #999;
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    .wa-card-footer {
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--gray-100);
+    }
+
+    .wa-timing-badge {
+      font-size: 10px;
+      font-weight: 600;
+      color: #128c3e;
+      background: #dcf8e1;
+      padding: 2px 9px;
+      border-radius: 99px;
+    }
+
+    .wa-count-label {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+
+    /* ===== ACTIVITY LOG TAB ===== */
+    .activity-list {
+      padding: 8px 0 80px;
+    }
+
+    .activity-item {
+      display: flex;
+      gap: 11px;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--gray-100);
+      align-items: flex-start;
+    }
+
+    .activity-item:last-child { border-bottom: none; }
+
+    .activity-icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .ai-whatsapp   { background: #dcf8e1; }
+    .ai-escalation { background: var(--danger-light); }
+    .ai-reminder   { background: var(--warning-light); }
+    .ai-system     { background: var(--gray-100); }
+    .ai-lead       { background: var(--primary-light); }
+    .ai-callback   { background: var(--purple-light); }
+
+    .activity-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-time {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-500);
+      margin-bottom: 2px;
+    }
+
+    .activity-msg {
+      font-size: 13px;
+      color: var(--gray-800);
+      line-height: 1.4;
+    }
+
+    .activity-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    .ab-whatsapp   { background: #dcf8e1; color: #128c3e; }
+    .ab-escalation { background: var(--danger-light); color: var(--danger); }
+    .ab-reminder   { background: var(--warning-light); color: var(--warning); }
+    .ab-system     { background: var(--gray-100); color: var(--gray-600); }
+    .ab-lead       { background: var(--primary-light); color: var(--primary); }
+    .ab-callback   { background: var(--purple-light); color: var(--purple); }
+
+    .activity-latest-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+      margin-top: 13px;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Live indicator */
+    .live-strip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      background: var(--success-light);
+      border-bottom: 1px solid #b7e8cb;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 1.2s infinite;
+      flex-shrink: 0;
+    }
+
+    .live-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    /* Tabs inside activity */
+    @keyframes slideDown {
+      from { transform: translateY(-20px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Bottom nav active for this page */
+    .bot-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px 0 4px;
+      font-size: 10px;
+      color: var(--gray-500);
+      cursor: pointer;
+      border: none;
+      background: none;
+      transition: color 0.18s;
+    }
+
+    .bot-nav-item.active { color: var(--primary); }
+
+    .bot-nav-icon {
+      font-size: 20px;
+      margin-bottom: 2px;
+    }
+
+    /* Empty state for filtered list */
+    .empty-state {
+      text-align: center;
+      padding: 40px 24px;
+      color: var(--gray-500);
+    }
+
+    .empty-state .es-icon { font-size: 36px; margin-bottom: 10px; }
+    .empty-state .es-text { font-size: 14px; font-weight: 600; }
+    .empty-state .es-sub  { font-size: 12px; margin-top: 4px; }
+
+    /* Escalation chain divider label */
+    .chain-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px 2px;
+    }
+
+    .chain-divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--gray-200);
+    }
+
+    .chain-divider-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== TOP BAR ===== -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <button class="back-btn" onclick="location.href='index.html'" aria-label="Back">&#8592;</button>
+      <div>
+        <h1>Automation Engine</h1>
+        <div class="subtitle">BCH Lead Management System</div>
+      </div>
+    </div>
+    <div class="top-bar-right">
+      <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:3px 9px;border-radius:99px;font-weight:700;letter-spacing:0.3px;">18/18 LIVE</span>
+    </div>
+  </div>
+
+  <!-- ===== TAB NAV ===== -->
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="tab-rules"    role="tab" onclick="switchTab('tab-rules')">Rules</button>
+    <button class="tab-btn"        data-tab="tab-escalation" role="tab" onclick="switchTab('tab-escalation')">Escalation</button>
+    <button class="tab-btn"        data-tab="tab-whatsapp" role="tab" onclick="switchTab('tab-whatsapp')">WhatsApp</button>
+    <button class="tab-btn"        data-tab="tab-activity" role="tab" onclick="switchTab('tab-activity')">Activity</button>
+  </nav>
+
+  <!-- ===================================================
+       TAB 1: RULES
+       =================================================== -->
+  <div id="tab-rules" class="tab-panel active" role="tabpanel">
+
+    <!-- Summary strip -->
+    <div class="summary-strip">
+      <div class="summary-stat">
+        <div class="s-num all" id="count-total">18</div>
+        <div class="s-label">Rules</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-num on" id="count-active">18</div>
+        <div class="s-label">Active</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-num off" id="count-paused">0</div>
+        <div class="s-label">Paused</div>
+      </div>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="filter-row" id="filter-row">
+      <button class="filter-chip active-filter" data-filter="all"          onclick="setFilter(this,'all')">All</button>
+      <button class="filter-chip"               data-filter="whatsapp"     onclick="setFilter(this,'whatsapp')">WhatsApp</button>
+      <button class="filter-chip"               data-filter="notification" onclick="setFilter(this,'notification')">Notifications</button>
+      <button class="filter-chip"               data-filter="escalation"   onclick="setFilter(this,'escalation')">Escalation</button>
+      <button class="filter-chip"               data-filter="reminder"     onclick="setFilter(this,'reminder')">Reminders</button>
+      <button class="filter-chip"               data-filter="sequence"     onclick="setFilter(this,'sequence')">Sequence</button>
+      <button class="filter-chip"               data-filter="system"       onclick="setFilter(this,'system')">System</button>
+    </div>
+
+    <!-- Rule list (rendered by JS) -->
+    <div class="rule-list" id="rule-list"></div>
+
+  </div>
+
+  <!-- ===================================================
+       TAB 2: ESCALATION
+       =================================================== -->
+  <div id="tab-escalation" class="tab-panel" role="tabpanel">
+    <div style="padding-bottom:80px;">
+
+      <!-- Chain 1: Lead not contacted -->
+      <div class="escalation-section-title">Lead Response Escalation</div>
+
+      <div class="flow-node" style="margin:6px 12px;">
+        <div class="flow-label lbl-trigger">Trigger</div>
+        <div class="flow-text">Lead not contacted in 2 hours</div>
+        <div class="flow-sub">Lead assigned to salesperson but no call logged</div>
+      </div>
+
+      <div class="flow-connector-arrow">
+        <div class="fc-line"></div>
+        <div class="fc-arrow"></div>
+      </div>
+
+      <div class="flow-node action" style="margin:0 12px;">
+        <div class="flow-label lbl-action">Step 1 — Auto Reminder</div>
+        <div class="flow-text">REMINDER to assigned salesperson</div>
+        <div class="flow-sub">Push notification: "You have an uncontacted lead — call now"</div>
+      </div>
+
+      <div class="flow-node-timing">(2 more hours pass — no action taken)</div>
+
+      <div class="flow-connector-arrow">
+        <div class="fc-line"></div>
+        <div class="fc-arrow"></div>
+      </div>
+
+      <div class="flow-node filter" style="margin:0 12px;">
+        <div class="flow-label lbl-escalate">Step 2 — Escalation</div>
+        <div class="flow-text">ESCALATION to Ibrahim</div>
+        <div class="flow-sub">Ibrahim notified: salesperson has not contacted lead in 4 hours</div>
+      </div>
+
+      <div class="flow-connector-arrow">
+        <div class="fc-line"></div>
+        <div class="fc-arrow"></div>
+      </div>
+
+      <div class="flow-node connect" style="margin:0 12px;">
+        <div class="flow-label lbl-options">Ibrahim can:</div>
+        <div class="flow-options">
+          <div class="flow-option-item"><span>&#8594;</span> Reassign lead to another salesperson</div>
+          <div class="flow-option-item"><span>&#8594;</span> Call the lead directly</div>
+          <div class="flow-option-item"><span>&#8594;</span> Flag salesperson for review</div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="chain-divider" style="margin-top:16px;">
+        <div class="chain-divider-line"></div>
+        <div class="chain-divider-label">Callback Escalation</div>
+        <div class="chain-divider-line"></div>
+      </div>
+
+      <!-- Chain 2: Callback -->
+      <div class="flow-node" style="margin:6px 12px;">
+        <div class="flow-label lbl-trigger">Trigger</div>
+        <div class="flow-text">Missed call detected</div>
+        <div class="flow-sub">IVR records unanswered inbound call</div>
+      </div>
+
+      <div class="flow-connector-arrow">
+        <div class="fc-line"></div>
+        <div class="fc-arrow"></div>
+      </div>
+
+      <div class="flow-node action" style="margin:0 12px;">
+        <div class="flow-label lbl-action">Immediate Action</div>
+        <div class="flow-text">Add to callback queue + notify BDC</div>
+        <div class="flow-sub">BDC agent alerted with caller number and source profile</div>
+      </div>
+
+      <div class="flow-node-timing">(15 minutes pass — callback not completed)</div>
+
+      <div class="flow-connector-arrow">
+        <div class="fc-line"></div>
+        <div class="fc-arrow"></div>
+      </div>
+
+      <div class="flow-node filter" style="margin:0 12px;">
+        <div class="flow-label lbl-escalate">Escalation</div>
+        <div class="flow-text">Escalate to 2nd BDC agent</div>
+        <div class="flow-sub">If primary BDC has not called back within 15 min, 2nd BDC is notified to take over</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================
+       TAB 3: WHATSAPP TEMPLATES
+       =================================================== -->
+  <div id="tab-whatsapp" class="tab-panel" role="tabpanel">
+    <div style="padding:8px 0 80px;">
+
+      <!-- Template 1: Welcome -->
+      <div class="wa-card">
+        <div class="wa-card-header">
+          <div class="wa-template-name">WELCOME MESSAGE</div>
+          <div class="wa-trigger-tag">On Lead Creation</div>
+        </div>
+        <div class="wa-card-body">
+          <div class="wa-bubble">
+            <div class="wa-bubble-text">ನಮಸ್ಕಾರ! &#128075;
+
+ಭಾರತ್ ಸೈಕಲ್ ಹಬ್‌ಗೆ ಸ್ವಾಗತ! &#128690;
+
+ನಮ್ಮ ಶ್ರೇಣಿ: &#9989; ಎಲೆಕ್ಟ್ರಿಕ್ &#9989; ಗೇರ್ &#9989; ಮಕ್ಕಳ &#9989; ಸೆಕೆಂಡ್-ಹ್ಯಾಂಡ್
+
+ನಮ್ಮ ಸ್ಟೋರ್: &#127968; ಯಲಹಂಕ, ಬೆಂಗಳೂರು
+
+EMI ₹999/ತಿಂಗಳಿನಿಂದ ಲಭ್ಯ!
+
+ನಿಮ್ಮ ಸಲಹೆಗಾರ ಶೀಘ್ರದಲ್ಲೇ ಸಂಪರ್ಕಿಸುತ್ತಾರೆ. &#128522;</div>
+            <div class="wa-bubble-time">Now &#10003;&#10003;</div>
+          </div>
+        </div>
+        <div class="wa-card-footer">
+          <div class="wa-timing-badge">Immediate</div>
+          <div class="wa-count-label">Sent ~34 times today</div>
+        </div>
+      </div>
+
+      <!-- Template 2: Visit Reminder -->
+      <div class="wa-card">
+        <div class="wa-card-header">
+          <div class="wa-template-name">VISIT REMINDER</div>
+          <div class="wa-trigger-tag">Day Before Visit</div>
+        </div>
+        <div class="wa-card-body">
+          <div class="wa-bubble">
+            <div class="wa-bubble-text">Hi {{Name}}! &#128075;
+
+Tomorrow is your visit to Bharath Cycle Hub! &#128690;
+
+&#128205; Yelahanka, Bangalore (Google Maps link)
+&#8987; 10 AM – 8 PM, 7 days a week
+
+We will have your preferred bike ready for a test ride. &#128522;
+
+If you need to reschedule, reply here or call us anytime.</div>
+            <div class="wa-bubble-time">6:00 PM &#10003;&#10003;</div>
+          </div>
+        </div>
+        <div class="wa-card-footer">
+          <div class="wa-timing-badge">6 PM day before</div>
+          <div class="wa-count-label">Scheduled visits only</div>
+        </div>
+      </div>
+
+      <!-- Template 3: Post-Visit No Purchase -->
+      <div class="wa-card">
+        <div class="wa-card-header">
+          <div class="wa-template-name">POST-VISIT (NO PURCHASE)</div>
+          <div class="wa-trigger-tag">2 Hours After Visit</div>
+        </div>
+        <div class="wa-card-body">
+          <div class="wa-bubble">
+            <div class="wa-bubble-text">Hi {{Name}}! Thanks for visiting BCH today. &#128690;
+
+We hope you enjoyed the experience! Did you have any questions we could answer?
+
+&#127381; Current offers:
+• EMI from ₹999/month
+• Free first service
+• Extended warranty available
+
+We would love to welcome you back. Our team is here to help. &#128522;</div>
+            <div class="wa-bubble-time">2 hrs later &#10003;&#10003;</div>
+          </div>
+        </div>
+        <div class="wa-card-footer">
+          <div class="wa-timing-badge">2 hours after visit</div>
+          <div class="wa-count-label">Walk-out leads only</div>
+        </div>
+      </div>
+
+      <!-- Template 4: Post-Purchase Review -->
+      <div class="wa-card">
+        <div class="wa-card-header">
+          <div class="wa-template-name">POST-PURCHASE REVIEW</div>
+          <div class="wa-trigger-tag">3 Days After Purchase</div>
+        </div>
+        <div class="wa-card-body">
+          <div class="wa-bubble">
+            <div class="wa-bubble-text">Hi {{Name}}! &#127881;
+
+Congratulations again on your new bike from BCH!
+
+We hope you are enjoying the ride. &#128690;&#127800;
+
+Could you spare 2 minutes to share your experience?
+
+&#9733; Google Review: [link]
+
+Your feedback helps us serve others better. Thank you! &#128591;</div>
+            <div class="wa-bubble-time">Day 3 &#10003;&#10003;</div>
+          </div>
+        </div>
+        <div class="wa-card-footer">
+          <div class="wa-timing-badge">3 days after purchase</div>
+          <div class="wa-count-label">All purchases</div>
+        </div>
+      </div>
+
+      <!-- Template 5: Outstation -->
+      <div class="wa-card">
+        <div class="wa-card-header">
+          <div class="wa-template-name">OUTSTATION AUTO-RESPONSE</div>
+          <div class="wa-trigger-tag">IVR Filtered</div>
+        </div>
+        <div class="wa-card-body">
+          <div class="wa-bubble">
+            <div class="wa-bubble-text">Hi! Thanks for contacting Bharath Cycle Hub. &#128690;
+
+We noticed you may be outside Bangalore. We currently serve customers in Bangalore.
+
+Good news — we offer:
+&#128666; Delivery within 20 km (charges apply)
+&#128722; Self-pickup available at our Yelahanka store
+
+Interested? Reply to this message or call us back and our team will guide you. &#128522;</div>
+            <div class="wa-bubble-time">Immediate &#10003;&#10003;</div>
+          </div>
+        </div>
+        <div class="wa-card-footer">
+          <div class="wa-timing-badge">Immediate</div>
+          <div class="wa-count-label">Outstation IVR filter</div>
+        </div>
+      </div>
+
+      <!-- Template 6: Kids U12 -->
+      <div class="wa-card">
+        <div class="wa-card-header">
+          <div class="wa-template-name">KIDS U12 AUTO-RESPONSE</div>
+          <div class="wa-trigger-tag">IVR Filtered</div>
+        </div>
+        <div class="wa-card-body">
+          <div class="wa-bubble">
+            <div class="wa-bubble-text">Hi! Thanks for calling BCH Toyz! &#127881;&#128690;
+
+We have an amazing range of kids' bicycles from age 3 to 12!
+
+&#128690; Balance bikes from ₹2,999
+&#128690; Kids cycles from ₹3,999 to ₹9,999
+&#128690; Safety gear included in select packs
+
+Visit us at Yelahanka or reply here for a full catalogue. We love little riders! &#128522;</div>
+            <div class="wa-bubble-time">Immediate &#10003;&#10003;</div>
+          </div>
+        </div>
+        <div class="wa-card-footer">
+          <div class="wa-timing-badge">Immediate</div>
+          <div class="wa-count-label">Kids U12 IVR filter</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================
+       TAB 4: ACTIVITY LOG
+       =================================================== -->
+  <div id="tab-activity" class="tab-panel" role="tabpanel">
+
+    <div class="live-strip">
+      <div class="live-dot"></div>
+      <div class="live-label">Live — Automation activity feed</div>
+    </div>
+
+    <div class="activity-list" id="activity-list"></div>
+
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav" role="navigation" aria-label="Page navigation">
+    <button class="bot-nav-item active" onclick="switchTabAndNav('tab-rules', this)">
+      <div class="bot-nav-icon">&#9881;</div>
+      Rules
+    </button>
+    <button class="bot-nav-item" onclick="switchTabAndNav('tab-escalation', this)">
+      <div class="bot-nav-icon">&#128680;</div>
+      Escalation
+    </button>
+    <button class="bot-nav-item" onclick="switchTabAndNav('tab-whatsapp', this)">
+      <div class="bot-nav-icon">&#128172;</div>
+      WhatsApp
+    </button>
+    <button class="bot-nav-item" onclick="switchTabAndNav('tab-activity', this)">
+      <div class="bot-nav-icon">&#9889;</div>
+      Activity
+    </button>
+  </nav>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script src="data.js"></script>
+  <script>
+    // ---- State ----
+    let currentFilter = 'all';
+
+    // ---- Type icons ----
+    const TYPE_ICONS = {
+      whatsapp:     '&#128172;',
+      notification: '&#128276;',
+      escalation:   '&#128680;',
+      reminder:     '&#8987;',
+      sequence:     '&#128203;',
+      system:       '&#9881;'
+    };
+
+    const TYPE_LABELS = {
+      whatsapp:     'WhatsApp',
+      notification: 'Notify',
+      escalation:   'Escalation',
+      reminder:     'Reminder',
+      sequence:     'Sequence',
+      system:       'System'
+    };
+
+    // ---- Active states (mirrors BCH.automationRules, mutable) ----
+    const ruleStates = {};
+    BCH.automationRules.forEach(r => { ruleStates[r.id] = r.active; });
+
+    // ---- Render rules ----
+    function renderRules() {
+      const container = document.getElementById('rule-list');
+      const rules = BCH.automationRules.filter(r =>
+        currentFilter === 'all' || r.type === currentFilter
+      );
+
+      if (rules.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="es-icon">&#128269;</div>
+            <div class="es-text">No rules match this filter</div>
+            <div class="es-sub">Try selecting "All" to see every rule</div>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = rules.map(rule => {
+        const isActive = ruleStates[rule.id];
+        return `
+          <div class="rule-card type-${rule.type}${isActive ? '' : ' rule-paused'}" id="rule-card-${rule.id}">
+            <div class="rule-icon type-${rule.type}">${TYPE_ICONS[rule.type] || '&#9881;'}</div>
+            <div class="rule-body">
+              <div class="rule-meta-top">
+                <span class="rule-num">#${String(rule.id).padStart(2,'0')}</span>
+                <span class="rule-type-badge type-${rule.type}">${TYPE_LABELS[rule.type]}</span>
+              </div>
+              <div class="rule-trigger">${rule.trigger}</div>
+              <div class="rule-action">${rule.action}</div>
+              <div class="rule-footer">
+                <span class="timing-badge">${rule.timing}</span>
+                <div class="toggle-wrap">
+                  <label class="toggle" aria-label="Toggle rule ${rule.id}">
+                    <input type="checkbox" ${isActive ? 'checked' : ''}
+                      onchange="toggleRule(${rule.id}, this.checked)" />
+                    <div class="toggle-track"></div>
+                    <div class="toggle-thumb"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      updateSummary();
+    }
+
+    // ---- Toggle a rule ----
+    function toggleRule(id, checked) {
+      ruleStates[id] = checked;
+      const card = document.getElementById('rule-card-' + id);
+      if (card) {
+        card.classList.toggle('rule-paused', !checked);
+      }
+      updateSummary();
+      const rule = BCH.automationRules.find(r => r.id === id);
+      const label = rule ? rule.trigger : 'Rule ' + id;
+      showToast(checked ? `Rule activated: ${label}` : `Rule paused: ${label}`, checked ? 'success' : 'warning');
+    }
+
+    // ---- Update summary counts ----
+    function updateSummary() {
+      const total  = BCH.automationRules.length;
+      const active = Object.values(ruleStates).filter(Boolean).length;
+      const paused = total - active;
+      document.getElementById('count-total').textContent  = total;
+      document.getElementById('count-active').textContent = active;
+      document.getElementById('count-paused').textContent = paused;
+    }
+
+    // ---- Filter chips ----
+    function setFilter(btn, filter) {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active-filter'));
+      btn.classList.add('active-filter');
+      currentFilter = filter;
+      renderRules();
+    }
+
+    // ---- Tab + bottom nav sync ----
+    function switchTabAndNav(tabId, navItem) {
+      switchTab(tabId);
+      document.querySelectorAll('.bot-nav-item').forEach(n => n.classList.remove('active'));
+      navItem.classList.add('active');
+    }
+
+    // Patch switchTab from data.js to also sync bottom nav when called directly
+    const _origSwitchTab = switchTab;
+
+    // ---- Activity log data ----
+    const activityLog = [
+      { time: '12:45 PM', msg: 'Auto-WhatsApp sent to 9876543210 (Welcome template)', type: 'whatsapp',   icon: '&#128172;', iconClass: 'ai-whatsapp'  },
+      { time: '12:40 PM', msg: 'Escalation: Nithin has 4 uncontacted leads > 4 hrs',  type: 'escalation', icon: '&#128680;', iconClass: 'ai-escalation', latest: true },
+      { time: '12:35 PM', msg: 'Follow-up reminder sent to Suma for Ravi Kumar',       type: 'reminder',   icon: '&#8987;',   iconClass: 'ai-reminder'  },
+      { time: '12:30 PM', msg: 'Lead L010 auto-created from EM Doodle call',           type: 'lead',       icon: '&#128100;', iconClass: 'ai-lead'      },
+      { time: '12:25 PM', msg: 'Callback queue alert: 5 pending (oldest 2 hrs)',       type: 'callback',   icon: '&#128222;', iconClass: 'ai-callback'  },
+      { time: '12:15 PM', msg: 'Visit reminder WhatsApp sent to Mohammed Aslam',       type: 'whatsapp',   icon: '&#128172;', iconClass: 'ai-whatsapp'  },
+      { time: '11:45 AM', msg: 'Missed call added to callback queue: 9876999888',      type: 'callback',   icon: '&#128222;', iconClass: 'ai-callback'  },
+      { time: '11:30 AM', msg: 'Lead L009 (Lakshmi Devi) auto-moved to Follow-up Active', type: 'system', icon: '&#9881;',   iconClass: 'ai-system'    },
+      { time: '10:00 AM', msg: 'Morning notification sent: Suma has 5 follow-ups today',   type: 'reminder', icon: '&#128276;', iconClass: 'ai-reminder' },
+      { time: '9:30 AM',  msg: 'System check: 18/18 automation rules active',          type: 'system',     icon: '&#9989;',   iconClass: 'ai-system'    }
+    ];
+
+    const BADGE_LABELS = {
+      whatsapp:   'WhatsApp',
+      escalation: 'Escalation',
+      reminder:   'Reminder',
+      lead:       'Lead',
+      callback:   'Callback',
+      system:     'System'
+    };
+
+    function renderActivity() {
+      const container = document.getElementById('activity-list');
+      container.innerHTML = activityLog.map((item, idx) => `
+        <div class="activity-item">
+          ${item.latest ? '<div class="activity-latest-dot"></div>' : '<div style="width:8px;flex-shrink:0;margin-top:13px;"></div>'}
+          <div class="activity-icon-wrap ${item.iconClass}">${item.icon}</div>
+          <div class="activity-body">
+            <div class="activity-time">${item.time}</div>
+            <div class="activity-msg">${item.msg}</div>
+            <span class="activity-badge ab-${item.type}">${BADGE_LABELS[item.type] || item.type}</span>
+          </div>
+        </div>`).join('');
+    }
+
+    // ---- Init ----
+    renderRules();
+    renderActivity();
+  </script>
+</body>
+</html>
