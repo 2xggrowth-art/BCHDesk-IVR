@@ -124,9 +124,14 @@ export function MyLeadsPage() {
 
       {/* Lead cards */}
       {isLoading ? (
-        <div className="text-center py-12 text-gray-400">Loading your leads...</div>
+        <div className="flex flex-col items-center py-12 text-gray-400">
+          <div className="w-8 h-8 border-3 border-primary-200 border-t-primary-500 rounded-full animate-spin mb-3" />
+          <p className="text-sm">Loading your leads...</p>
+        </div>
       ) : filteredLeads.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">No leads in this category</div>
+        <div className="text-center py-12">
+          <p className="text-gray-400 text-sm">{leads.length === 0 ? 'No leads assigned yet' : 'No leads in this category'}</p>
+        </div>
       ) : (
         <div className="space-y-3">
           {filteredLeads.map((lead) => (

@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(npx vercel:*)",
+      "Bash(vercel:*)",
+      "Bash(done)",
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)",
+      "Bash(node -e:*)",
+      "Bash(VITE_APP_ROLE=bdc npx vite build:*)",
+      "Bash(VITE_APP_ROLE=staff npx vite build:*)",
+      "Bash(VITE_APP_ROLE=manager npx vite build:*)",
+      "Bash(npx cap add:*)",
+      "Bash(npx @capacitor/cli add android:*)",
+      "Bash(export ANDROID_HOME:*)",
+      "Bash(export JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\")",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(node scripts/prepare-flavor.js:*)",
+      "Bash(npx @capacitor/cli sync:*)",
+      "Bash(ANDROID_HOME=\"C:/Users/user/AppData/Local/Android/Sdk\" JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(npx tsc:*)",
+      "Bash(for flavor in bdc staff manager)",
+      "Bash(do node scripts/prepare-flavor.js $flavor)"
+    ]
+  }
+}

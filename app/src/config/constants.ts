@@ -144,7 +144,17 @@ export const LEAD_STAGES: ChipOption[] = [
   { value: 'lost', label: 'Lost' },
 ];
 
-// Staff auto-assignment rules
+// Staff list for manual assignment
+export const STAFF_LIST: { value: string; name: string; specialty: string }[] = [
+  { value: 'suma', name: 'Suma', specialty: 'E-cycles' },
+  { value: 'abhi', name: 'Abhi Gowda', specialty: 'Gear Cycles' },
+  { value: 'nithin', name: 'Nithin', specialty: 'Kids/Budget' },
+  { value: 'baba', name: 'Baba', specialty: '2nd Life' },
+  { value: 'ranjitha', name: 'Ranjitha', specialty: 'Service' },
+  { value: 'sunil', name: 'Sunil', specialty: 'Premium' },
+];
+
+// Staff auto-assignment rules (kept for reference)
 export const ASSIGNMENT_RULES: Record<string, { name: string; specialty: string }> = {
   electric: { name: 'Suma', specialty: 'E-cycles' },
   gear: { name: 'Abhi Gowda', specialty: 'Gear Cycles' },
@@ -152,6 +162,87 @@ export const ASSIGNMENT_RULES: Record<string, { name: string; specialty: string 
   second_hand: { name: 'Baba', specialty: '2nd Life' },
   service: { name: 'Ranjitha', specialty: 'Service' },
   other: { name: 'Sunil', specialty: 'Premium' },
+};
+
+// Interest → Brands mapping (which brands show for each interest)
+export const INTEREST_BRANDS: Record<string, ChipOption[]> = {
+  electric: [
+    { value: 'emotorad', label: 'EMotorad' },
+    { value: 'hero_lectro', label: 'Hero Lectro' },
+    { value: 'raleigh', label: 'Raleigh' },
+    { value: 'giant', label: 'Giant' },
+    { value: 'other', label: 'Other' },
+  ],
+  gear: [
+    { value: 'hercules', label: 'Hercules' },
+    { value: 'giant', label: 'Giant' },
+    { value: 'raleigh', label: 'Raleigh' },
+    { value: 'aoki', label: 'AOKI' },
+    { value: 'other', label: 'Other' },
+  ],
+  kids_teen: [
+    { value: 'hercules', label: 'Hercules' },
+    { value: 'aoki', label: 'AOKI' },
+    { value: 'other', label: 'Other' },
+  ],
+  second_hand: [
+    { value: 'emotorad', label: 'EMotorad' },
+    { value: 'hero_lectro', label: 'Hero Lectro' },
+    { value: 'hercules', label: 'Hercules' },
+    { value: 'giant', label: 'Giant' },
+    { value: 'raleigh', label: 'Raleigh' },
+    { value: 'other', label: 'Other' },
+  ],
+  service: [
+    { value: 'emotorad', label: 'EMotorad' },
+    { value: 'hero_lectro', label: 'Hero Lectro' },
+    { value: 'hercules', label: 'Hercules' },
+    { value: 'giant', label: 'Giant' },
+    { value: 'raleigh', label: 'Raleigh' },
+    { value: 'aoki', label: 'AOKI' },
+    { value: 'other', label: 'Other' },
+  ],
+  other: [
+    { value: 'emotorad', label: 'EMotorad' },
+    { value: 'hero_lectro', label: 'Hero Lectro' },
+    { value: 'hercules', label: 'Hercules' },
+    { value: 'giant', label: 'Giant' },
+    { value: 'raleigh', label: 'Raleigh' },
+    { value: 'aoki', label: 'AOKI' },
+    { value: 'other', label: 'Other' },
+  ],
+};
+
+// Brand → Models mapping (which models show for each brand)
+export const BRAND_MODELS: Record<string, ChipOption[]> = {
+  emotorad: [
+    { value: 'desire', label: 'Desire' },
+    { value: 'doodle', label: 'Doodle' },
+    { value: 't_rex', label: 'T-Rex' },
+    { value: 'x1', label: 'X1' },
+    { value: 'x2', label: 'X2' },
+    { value: 'x3', label: 'X3' },
+    { value: 'other', label: 'Other' },
+  ],
+  raleigh: [
+    { value: 'raleigh_eco', label: 'Raleigh Eco' },
+    { value: 'other', label: 'Other' },
+  ],
+  hero_lectro: [
+    { value: 'other', label: 'Other' },
+  ],
+  hercules: [
+    { value: 'other', label: 'Other' },
+  ],
+  giant: [
+    { value: 'other', label: 'Other' },
+  ],
+  aoki: [
+    { value: 'other', label: 'Other' },
+  ],
+  other: [
+    { value: 'other', label: 'Other' },
+  ],
 };
 
 // Score color mapping

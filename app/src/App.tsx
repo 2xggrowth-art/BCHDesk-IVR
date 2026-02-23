@@ -7,10 +7,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthGuard, RoleGuard } from '@/guards/RoleGuard';
 import { useAuthStore } from '@/store/authStore';
-import { BUILD_ROLE, getAppConfig, hasFeature } from '@/config/features';
+import { BUILD_ROLE, getAppConfig } from '@/config/features';
 import { validateEnv } from '@/config/env';
 import { initOfflineDB } from '@/services/offline';
 import { startAutomationEngine } from '@/modules/automation/engine';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Network } from '@capacitor/network';
 
 // Pages
 import { LoginPage } from '@/pages/LoginPage';
@@ -18,7 +20,8 @@ import { LoginPage } from '@/pages/LoginPage';
 // BDC Module
 import { BdcLayout } from '@/modules/bdc/BdcLayout';
 import { IncomingPage } from '@/modules/bdc/pages/IncomingPage';
-import { QualifyPage } from '@/modules/bdc/pages/QualifyPage';
+import { CallLogPage } from '@/modules/bdc/pages/CallLogPage';
+import { RecordingsPage } from '@/modules/bdc/pages/RecordingsPage';
 import { LeadsListPage } from '@/modules/bdc/pages/LeadsListPage';
 import { CallbacksPage } from '@/modules/bdc/pages/CallbacksPage';
 
@@ -35,6 +38,29 @@ import { LiveDashboard } from '@/modules/manager/pages/LiveDashboard';
 import { ContentROI } from '@/modules/manager/pages/ContentROI';
 import { PipelinePage } from '@/modules/manager/pages/PipelinePage';
 import { TeamPage } from '@/modules/manager/pages/TeamPage';
+import { UsersPage } from '@/modules/manager/pages/UsersPage';
+
+// Login route — no auto-redirect, LoginPage handles navigation explicitly
+function LoginRoute() {
+  return <LoginPage />;
+}
+
+// Request device permissions on first launch
+async function requestPermissions() {
+  try {
+    // Push notifications permission
+    const pushStatus = await PushNotifications.checkPermissions();
+    if (pushStatus.receive !== 'granted') {
+      await PushNotifications.requestPermissions();
+    }
+  } catch { /* not available on web */ }
+
+  try {
+    // Network status
+    await Network.getStatus();
+  } catch { /* ignore */ }
+
+}
 
 export default function App() {
   const { initialize, isLoading } = useAuthStore();
@@ -44,6 +70,9 @@ export default function App() {
     validateEnv();
     initOfflineDB();
     initialize();
+
+    // Request device permissions on first launch
+    requestPermissions();
 
     // Start automation for manager role
     if (BUILD_ROLE === 'manager' || BUILD_ROLE === 'all') {
@@ -55,8 +84,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-2xl">🚲</span>
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg overflow-hidden p-2">
+            <img src="/bch-logo.png" alt="BCH" className="w-full h-full object-contain" />
           </div>
           <p className="text-sm text-gray-500 font-medium">{config.appName}</p>
         </div>
@@ -68,8 +97,8 @@ export default function App() {
     <BrowserRouter>
       <AppShell>
         <Routes>
-          {/* Login */}
-          <Route path="/login" element={<LoginPage />} />
+          {/* Login - redirects to dashboard if already authenticated */}
+          <Route path="/login" element={<LoginRoute />} />
 
           {/* BDC Routes */}
           {(BUILD_ROLE === 'bdc' || BUILD_ROLE === 'all') && (
@@ -85,7 +114,8 @@ export default function App() {
             >
               <Route index element={<Navigate to="incoming" replace />} />
               <Route path="incoming" element={<IncomingPage />} />
-              <Route path="qualify" element={<QualifyPage />} />
+              <Route path="calllog" element={<CallLogPage />} />
+              <Route path="recordings" element={<RecordingsPage />} />
               <Route path="leads" element={<LeadsListPage />} />
               <Route path="leads/:id" element={<LeadDetailPage />} />
               <Route path="callbacks" element={<CallbacksPage />} />
@@ -129,6 +159,7 @@ export default function App() {
               <Route path="content" element={<ContentROI />} />
               <Route path="pipeline" element={<PipelinePage />} />
               <Route path="team" element={<TeamPage />} />
+              <Route path="users" element={<UsersPage />} />
             </Route>
           )}
 

@@ -9,7 +9,8 @@ import type { TabItem } from '@/types';
 
 const BDC_NAV_ITEMS: TabItem[] = [
   { id: 'incoming', label: 'Incoming', icon: '📞' },
-  { id: 'qualify', label: 'Qualify', icon: '📋' },
+  { id: 'calllog', label: 'Call Log', icon: '📋' },
+  { id: 'recordings', label: 'Recordings', icon: '🎙️' },
   { id: 'leads', label: 'Leads', icon: '📄' },
   { id: 'callbacks', label: 'Callbacks', icon: '🔔' },
 ];

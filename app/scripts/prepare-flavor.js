@@ -96,4 +96,21 @@ if (fs.existsSync(stringsPath)) {
   console.log('✅ Updated strings.xml');
 }
 
+// 4. Update applicationId in build.gradle
+const buildGradlePath = path.join(__dirname, '..', 'android', 'app', 'build.gradle');
+if (fs.existsSync(buildGradlePath)) {
+  let gradle = fs.readFileSync(buildGradlePath, 'utf-8');
+  gradle = gradle.replace(
+    /applicationId\s+"[^"]+"/,
+    `applicationId "${config.appId}"`
+  );
+  // namespace must stay as com.crm.bch to match Java package
+  gradle = gradle.replace(
+    /namespace\s*=\s*"[^"]+"/,
+    `namespace = "com.crm.bch"`
+  );
+  fs.writeFileSync(buildGradlePath, gradle);
+  console.log('✅ Updated build.gradle applicationId');
+}
+
 console.log(`\n🎉 Flavor "${flavor}" ready for build!\n`);

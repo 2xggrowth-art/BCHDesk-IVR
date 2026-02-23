@@ -12,6 +12,7 @@ const MANAGER_NAV_ITEMS: TabItem[] = [
   { id: 'content', label: 'Content', icon: '📈' },
   { id: 'pipeline', label: 'Pipeline', icon: '🔄' },
   { id: 'team', label: 'Team', icon: '👥' },
+  { id: 'users', label: 'Users', icon: '👤' },
 ];
 
 export function ManagerLayout() {

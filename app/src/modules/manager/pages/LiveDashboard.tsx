@@ -21,14 +21,18 @@ export function LiveDashboard() {
     return unsub;
   }, []);
 
+  const [loadError, setLoadError] = useState(false);
+
   const loadDashboard = async () => {
     setIsLoading(true);
+    setLoadError(false);
     try {
       await fetchLeads();
       const perf = await dashboardApi.getStaffPerformance();
       setStaffPerf(perf as StaffPerformance[]);
     } catch (err) {
       console.error('Dashboard load failed:', err);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +60,23 @@ export function LiveDashboard() {
   });
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-20 text-gray-400">Loading dashboard...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div className="w-10 h-10 border-3 border-primary-200 border-t-primary-500 rounded-full animate-spin mb-3" />
+        <p className="text-sm">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (loadError && leads.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <p className="text-sm mb-2">Could not load data</p>
+        <button onClick={loadDashboard} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg">
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

@@ -1,5 +1,5 @@
 // ============================================================
-// BCH CRM - Top Bar Navigation
+// BCH CRM - Top Bar Navigation (with Logout)
 // ============================================================
 
 import { useNavigate } from 'react-router-dom';
@@ -16,9 +16,14 @@ interface TopBarProps {
 
 export function TopBar({ title, showBack, badge, rightAction }: TopBarProps) {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { isOffline, pendingSyncCount } = useUIStore();
   const config = getAppConfig();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div className="sticky top-0 z-30 bg-primary-500 text-white shadow-md">
@@ -62,6 +67,18 @@ export function TopBar({ title, showBack, badge, rightAction }: TopBarProps) {
             </span>
           )}
           {rightAction}
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 active:scale-95"
+            title="Logout"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
