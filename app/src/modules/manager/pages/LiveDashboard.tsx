@@ -2,11 +2,12 @@
 // BCH CRM - Manager: Live Dashboard
 // ============================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, StatCard, AlertCard } from '@/components/ui/Card';
 import { ChipBadge } from '@/components/ui/Chip';
-import { dashboardApi, leadsApi } from '@/services/api';
+import { dashboardApi, followupsApi } from '@/services/api';
 import { useLeadsStore } from '@/store/leadsStore';
+import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { formatRupees, percentOf } from '@/utils/format';
 import type { StaffPerformance } from '@/types';
 
@@ -14,29 +15,55 @@ export function LiveDashboard() {
   const { leads, fetchLeads, subscribeToChanges } = useLeadsStore();
   const [staffPerf, setStaffPerf] = useState<StaffPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboard();
-    const unsub = subscribeToChanges();
-    return unsub;
-  }, []);
-
   const [loadError, setLoadError] = useState(false);
+  const [followupStats, setFollowupStats] = useState({ due: 0, completed: 0 });
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     setLoadError(false);
     try {
       await fetchLeads();
       const perf = await dashboardApi.getStaffPerformance();
-      setStaffPerf(perf as StaffPerformance[]);
+      setStaffPerf(perf as unknown as StaffPerformance[]);
+
+      // Fetch real follow-up compliance data
+      if (isSupabaseConfigured()) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const { count: dueCount } = await supabase
+          .from('followups')
+          .select('*', { count: 'exact', head: true })
+          .gte('next_date', today.toISOString())
+          .lt('next_date', tomorrow.toISOString());
+
+        const { count: completedCount } = await supabase
+          .from('followups')
+          .select('*', { count: 'exact', head: true })
+          .gte('next_date', today.toISOString())
+          .lt('next_date', tomorrow.toISOString())
+          .eq('status', 'completed');
+
+        setFollowupStats({
+          due: dueCount || 0,
+          completed: completedCount || 0,
+        });
+      }
     } catch (err) {
       console.error('Dashboard load failed:', err);
       setLoadError(true);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchLeads]);
+
+  useEffect(() => {
+    loadDashboard();
+    const unsub = subscribeToChanges();
+    return unsub;
+  }, [loadDashboard, subscribeToChanges]);
 
   // Compute live stats from leads
   const today = new Date().toISOString().split('T')[0];
@@ -50,7 +77,18 @@ export function LiveDashboard() {
   const revenue = purchasedLeads.reduce((sum, l) => sum + (l.purchase_amount || 0), 0);
   const missedCalls = todayLeads.filter((l) => l.stage === 'lead_created' && !l.last_contact).length;
 
-  // Uncontacted leads > 2hr
+  // Compute real revenue split from leads vs walk-ins
+  const leadsRevenue = purchasedLeads
+    .filter((l) => l.source && l.source !== 'walk_in')
+    .reduce((sum, l) => sum + (l.purchase_amount || 0), 0);
+  const walkinRevenue = revenue - leadsRevenue;
+
+  // Follow-up compliance rate
+  const followupRate = followupStats.due > 0
+    ? Math.round((followupStats.completed / followupStats.due) * 100)
+    : 0;
+
+  // Uncontacted leads > 4hr
   const urgentStaff = staffPerf.filter((s) => {
     const staffLeads = leads.filter(
       (l) => l.assigned_to === s.user_id && !l.last_contact &&
@@ -86,8 +124,8 @@ export function LiveDashboard() {
         <p className="text-xs opacity-70 uppercase tracking-wide">Today's Revenue</p>
         <p className="text-3xl font-bold mt-1">{formatRupees(revenue)}</p>
         <div className="flex gap-4 mt-2 text-xs opacity-80">
-          <span>Leads: {formatRupees(revenue * 0.35)}</span>
-          <span>Walk-ins: {formatRupees(revenue * 0.65)}</span>
+          <span>Leads: {formatRupees(leadsRevenue)}</span>
+          <span>Walk-ins: {formatRupees(walkinRevenue)}</span>
         </div>
       </div>
 
@@ -158,15 +196,15 @@ export function LiveDashboard() {
         </h3>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <p className="text-xl font-bold text-primary-500">18</p>
+            <p className="text-xl font-bold text-primary-500">{followupStats.due}</p>
             <p className="text-[10px] text-gray-400">Due Today</p>
           </div>
           <div>
-            <p className="text-xl font-bold text-success-500">11</p>
+            <p className="text-xl font-bold text-success-500">{followupStats.completed}</p>
             <p className="text-[10px] text-gray-400">Completed</p>
           </div>
           <div>
-            <p className="text-xl font-bold text-warning-500">61%</p>
+            <p className="text-xl font-bold text-warning-500">{followupRate}%</p>
             <p className="text-[10px] text-gray-400">Rate</p>
           </div>
         </div>

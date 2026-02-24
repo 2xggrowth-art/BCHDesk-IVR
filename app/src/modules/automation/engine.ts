@@ -130,6 +130,7 @@ async function logAutomation(
 
 // Start automation polling (runs every 5 minutes)
 let automationInterval: ReturnType<typeof setInterval> | null = null;
+let inactiveInterval: ReturnType<typeof setInterval> | null = null;
 
 export function startAutomationEngine(): void {
   if (automationInterval) return;
@@ -143,7 +144,7 @@ export function startAutomationEngine(): void {
   }, 5 * 60 * 1000);
 
   // Check inactive leads once per hour
-  setInterval(() => {
+  inactiveInterval = setInterval(() => {
     checkInactiveLeads();
   }, 60 * 60 * 1000);
 }
@@ -152,5 +153,9 @@ export function stopAutomationEngine(): void {
   if (automationInterval) {
     clearInterval(automationInterval);
     automationInterval = null;
+  }
+  if (inactiveInterval) {
+    clearInterval(inactiveInterval);
+    inactiveInterval = null;
   }
 }

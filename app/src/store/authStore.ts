@@ -8,6 +8,8 @@ import { create } from 'zustand';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { BUILD_ROLE } from '@/config/features';
 import { deleteCredentials } from '@/services/biometric';
+import { clearAllCache } from '@/services/offline';
+import { setSupabaseSessionReady } from '@/services/api';
 import type { User, UserRole } from '@/types';
 
 // ---- Hardcoded credentials (local auth fallback) ----
@@ -121,9 +123,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           authError: null,
         });
 
-        // Fire-and-forget: Supabase login in background
+        // Fire-and-forget Supabase login — don't block UI navigation
+        // Once session is ready, API calls will switch from cache to live queries
         if (isSupabaseConfigured()) {
-          supabase.auth.signInWithPassword({ email, password }).catch(() => {});
+          supabase.auth.signInWithPassword({ email, password })
+            .then(({ error }) => {
+              if (!error) {
+                setSupabaseSessionReady(true);
+              }
+            })
+            .catch(() => {});
         }
         return;
       }
@@ -148,8 +157,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
             if (profile) {
               const userProfile = (profile as { data: User }).data || profile as User;
-              // Check if this user is allowed in this app via local credentials
-              // (Supabase doesn't know about allowedApps, so check locally)
               const localCred = ALL_CREDENTIALS.find(c => c.email === email);
               if (BUILD_ROLE !== 'all' && localCred && !localCred.allowedApps.includes(BUILD_ROLE)) {
                 supabase.auth.signOut().catch(() => {});
@@ -157,6 +164,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 set({ isLoginInProgress: false, authError: err });
                 throw new Error(err);
               }
+              setSupabaseSessionReady(true);
               const supaRole = (BUILD_ROLE !== 'all' ? BUILD_ROLE : userProfile.role) as UserRole;
               set({
                 user: userProfile,
@@ -193,8 +201,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     // Clear state immediately, don't block on async cleanup
+    setSupabaseSessionReady(false);
     set({ user: null, session: null, isAuthenticated: false, authError: null });
-    // Non-blocking cleanup
+    // Non-blocking cleanup — clear PII from cache and biometric storage
+    clearAllCache().catch(() => {});
     deleteCredentials().catch(() => {});
     if (isSupabaseConfigured()) {
       supabase.auth.signOut().catch(() => {});

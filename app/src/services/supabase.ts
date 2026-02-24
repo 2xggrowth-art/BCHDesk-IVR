@@ -10,7 +10,7 @@ const supabaseKey = ENV.SUPABASE_ANON_KEY || 'placeholder-key';
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    persistSession: true,
+    persistSession: false,
     autoRefreshToken: true,
     detectSessionInUrl: false, // Mobile app, no URL auth
     flowType: 'implicit',

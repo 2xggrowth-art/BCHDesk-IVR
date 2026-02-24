@@ -183,18 +183,32 @@ export async function stopCallListener(): Promise<void> {
 export function onIncomingCall(callback: (data: IncomingCallData) => void): () => void {
   if (Capacitor.getPlatform() === 'web') return () => {};
   let removeRef: { remove: () => void } | null = null;
-  CallLogNative.addListener('incomingCall', (data) => {
+  let pendingRemove = false;
+  void CallLogNative.addListener('incomingCall', (data) => {
     callback(data as unknown as IncomingCallData);
-  }).then(ref => { removeRef = ref; });
-  return () => { removeRef?.remove(); };
+  }).then(ref => {
+    if (pendingRemove) { ref.remove(); }
+    else { removeRef = ref; }
+  }).catch(() => {});
+  return () => {
+    pendingRemove = true;
+    removeRef?.remove();
+  };
 }
 
 /** Listen for call state changes (answered, idle) */
 export function onCallStateChanged(callback: (data: IncomingCallData) => void): () => void {
   if (Capacitor.getPlatform() === 'web') return () => {};
   let removeRef: { remove: () => void } | null = null;
-  CallLogNative.addListener('callStateChanged', (data) => {
+  let pendingRemove = false;
+  void CallLogNative.addListener('callStateChanged', (data) => {
     callback(data as unknown as IncomingCallData);
-  }).then(ref => { removeRef = ref; });
-  return () => { removeRef?.remove(); };
+  }).then(ref => {
+    if (pendingRemove) { ref.remove(); }
+    else { removeRef = ref; }
+  }).catch(() => {});
+  return () => {
+    pendingRemove = true;
+    removeRef?.remove();
+  };
 }

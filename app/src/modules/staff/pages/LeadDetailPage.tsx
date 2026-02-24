@@ -14,7 +14,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import {
   getSourceLabel, getBudgetLabel, getInterestLabel, getStageLabel,
-  timeAgo, formatDate,
+  timeAgo, formatDate, sanitizePhone,
 } from '@/utils/format';
 import type { Lead, Call, Activity, CallOutcome } from '@/types';
 
@@ -57,7 +57,7 @@ export function LeadDetailPage() {
 
   const handleCall = () => {
     if (lead?.phone) {
-      window.open(`tel:${lead.phone}`, '_self');
+      window.open(`tel:${sanitizePhone(lead.phone)}`, '_self');
       setShowOutcome(true);
     }
   };
@@ -67,7 +67,7 @@ export function LeadDetailPage() {
       const msg = encodeURIComponent(
         `Hi ${lead.name || ''}! This is from Bharath Cycle Hub. Thank you for your interest in our ${lead.interest || 'cycles'}. How can we help you today?`
       );
-      window.open(`https://wa.me/91${lead.phone}?text=${msg}`, '_blank');
+      window.open(`https://wa.me/91${sanitizePhone(lead.phone)}?text=${msg}`, '_blank');
     }
   };
 

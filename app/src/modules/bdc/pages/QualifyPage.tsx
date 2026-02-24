@@ -14,6 +14,8 @@ import {
 import { ASSIGNMENT_RULES } from '@/config/constants';
 import { useLeadsStore } from '@/store/leadsStore';
 import { useUIStore } from '@/store/uiStore';
+import { callbacksApi } from '@/services/api';
+import type { Lead } from '@/types';
 
 export function QualifyPage() {
   const navigate = useNavigate();
@@ -98,6 +100,7 @@ export function QualifyPage() {
         visit_intent: form.visitIntent as Lead['visit_intent'] || null,
         call_notes: form.callNotes.length > 0 ? form.callNotes : null,
         stage: 'qualified',
+        assigned_to: autoAssign?.userId || null,
       });
 
       showToast(`Lead saved & assigned to ${autoAssign?.name || 'staff'}`, 'success');
@@ -109,9 +112,24 @@ export function QualifyPage() {
     }
   };
 
-  const handleCallback = () => {
-    showToast('Added to callback queue', 'warning');
-    navigate('/bdc/callbacks');
+  const handleCallback = async () => {
+    if (!incomingCall?.phone) {
+      showToast('No phone number for callback', 'error');
+      return;
+    }
+    try {
+      await callbacksApi.create({
+        phone: incomingCall.phone,
+        source: incomingCall.source || null,
+        interest: form.interest || null,
+        missed_at: new Date().toISOString(),
+        status: 'pending',
+      });
+      showToast('Added to callback queue', 'success');
+      navigate('/bdc/callbacks');
+    } catch {
+      showToast('Failed to add callback', 'error');
+    }
   };
 
   return (
@@ -210,6 +228,3 @@ export function QualifyPage() {
     </div>
   );
 }
-
-// Type import for proper typing in create call
-import type { Lead } from '@/types';

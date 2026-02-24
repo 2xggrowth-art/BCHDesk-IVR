@@ -43,7 +43,7 @@ export const useUIStore = create<UIState>((set) => ({
   closeModal: () => set({ isModalOpen: false, modalContent: null }),
 
   showToast: (message, type = 'info', duration = 3000) => {
-    const id = `toast_${Date.now()}`;
+    const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     set((state) => ({
       toasts: [...state.toasts, { id, message, type, duration }],
     }));

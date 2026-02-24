@@ -28,7 +28,7 @@ export function ContentROI() {
     setIsLoading(true);
     try {
       const data = await dashboardApi.getSourceStats();
-      setSources((data as SourceStat[]).sort((a, b) => b.revenue - a.revenue));
+      setSources((data as unknown as SourceStat[]).sort((a, b) => b.revenue - a.revenue));
     } catch (err) {
       console.error('Failed to load source stats:', err);
     } finally {

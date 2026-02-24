@@ -21,7 +21,7 @@ export function TeamPage() {
     setIsLoading(true);
     try {
       const data = await dashboardApi.getStaffPerformance();
-      setStaff((data as StaffPerformance[]).sort((a, b) => b.revenue - a.revenue));
+      setStaff((data as unknown as StaffPerformance[]).sort((a, b) => b.revenue - a.revenue));
     } catch (err) {
       console.error('Failed to load team:', err);
     } finally {

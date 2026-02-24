@@ -10,7 +10,7 @@ import { ChipBadge } from '@/components/ui/Chip';
 import { callbacksApi } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { timeAgo, getSourceLabel, getInterestLabel } from '@/utils/format';
+import { timeAgo, getSourceLabel, getInterestLabel, sanitizePhone } from '@/utils/format';
 import type { Callback } from '@/types';
 
 export function CallbacksPage() {
@@ -38,9 +38,10 @@ export function CallbacksPage() {
 
   // Call back & then go to qualify page with that number
   const handleCallAndQualify = async (cb: Callback) => {
-    window.open(`tel:${cb.phone}`, '_self');
+    if (!user) return;
+    window.open(`tel:${sanitizePhone(cb.phone)}`, '_self');
     try {
-      await callbacksApi.markHandled(cb.id, user!.id, 'called_back');
+      await callbacksApi.markHandled(cb.id, user.id, 'called_back');
     } catch { /* ignore */ }
     // Navigate to incoming page with phone pre-filled for qualification
     navigate(`/bdc/incoming?phone=${encodeURIComponent(cb.phone)}`);
@@ -48,15 +49,17 @@ export function CallbacksPage() {
 
   // Just create lead directly without calling
   const handleCreateLead = async (cb: Callback) => {
+    if (!user) return;
     try {
-      await callbacksApi.markHandled(cb.id, user!.id, 'called_back');
+      await callbacksApi.markHandled(cb.id, user.id, 'called_back');
     } catch { /* ignore */ }
     navigate(`/bdc/incoming?phone=${encodeURIComponent(cb.phone)}`);
   };
 
   const handleSkip = async (cb: Callback) => {
+    if (!user) return;
     try {
-      await callbacksApi.markHandled(cb.id, user!.id, 'skipped');
+      await callbacksApi.markHandled(cb.id, user.id, 'skipped');
       setCallbacks((prev) => prev.filter((c) => c.id !== cb.id));
       showToast('Callback skipped', 'warning');
     } catch {

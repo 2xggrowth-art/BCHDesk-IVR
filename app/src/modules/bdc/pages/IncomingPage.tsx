@@ -14,7 +14,8 @@ import { ChipGroup } from '@/components/ui/Chip';
 import { ScoreBadge } from '@/components/ui/ScoreBadge';
 import { useLeadsStore } from '@/store/leadsStore';
 import { useUIStore } from '@/store/uiStore';
-import { callbacksApi } from '@/services/api';
+import { callbacksApi, leadsApi } from '@/services/api';
+import { timeAgo, getStageLabel, getInterestLabel } from '@/utils/format';
 import {
   AREAS, BUDGETS, VISIT_INTENTS, EMI_OPTIONS, CALL_NOTES, INTERESTS,
   INTEREST_BRANDS, BRAND_MODELS, STAFF_LIST,
@@ -22,7 +23,8 @@ import {
 import {
   startSpeechRecognition, startCallListener, onIncomingCall, onCallStateChanged,
 } from '@/services/calllog';
-import type { Lead } from '@/types';
+import { sanitizePhone } from '@/utils/format';
+import type { Lead, Callback } from '@/types';
 
 interface QueuedCall {
   phone: string;
@@ -38,7 +40,7 @@ const EMPTY_FORM = {
 export function IncomingPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { createLead } = useLeadsStore();
+  const { createLead, updateLead } = useLeadsStore();
   const { showToast } = useUIStore();
 
   // Track if user is actively qualifying (form open with data)
@@ -57,7 +59,7 @@ export function IncomingPage() {
 
   // IVR data placeholder
   const ivrData = useMemo(() => ({
-    source: 'direct_call' as const, location: '', ageBracket: '', interest: '' as const, language: 'hindi',
+    source: 'direct_referral' as const, location: '', ageBracket: '', interest: '' as const, language: 'hindi',
   }), []);
 
   // Check if navigated from CallLog with a phone number
@@ -121,6 +123,14 @@ export function IncomingPage() {
   const [customArea, setCustomArea] = useState('');
   const [form, setForm] = useState({ ...EMPTY_FORM });
 
+  // Customer phone (real number entered by BDC, not IVR number)
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [duplicateLead, setDuplicateLead] = useState<Lead | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  const [mergeMode, setMergeMode] = useState<'none' | 'update' | 'create'>('none');
+  const phoneCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Keep qualifyingRef in sync with form visibility
   useEffect(() => {
     qualifyingRef.current = showQualifyForm && callState !== 'waiting';
@@ -178,9 +188,44 @@ export function IncomingPage() {
     else if (result.error) showToast(result.error, 'error');
   };
 
+  // Debounced duplicate phone check
+  const checkDuplicatePhone = (digits: string) => {
+    if (phoneCheckTimerRef.current) clearTimeout(phoneCheckTimerRef.current);
+    setDuplicateLead(null);
+    setMergeMode('none');
+    setPhoneError('');
+    if (digits.length < 10) { setIsCheckingPhone(false); return; }
+    if (digits.length > 10) { setPhoneError('Phone number should be 10 digits'); return; }
+    setIsCheckingPhone(true);
+    phoneCheckTimerRef.current = setTimeout(async () => {
+      try {
+        const existing = await leadsApi.searchByPhone(digits);
+        if (existing && !existing.is_spam) setDuplicateLead(existing);
+      } catch { /* lookup failed silently */ }
+      finally { setIsCheckingPhone(false); }
+    }, 400);
+  };
+
+  const handleCustomerPhoneChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    setCustomerPhone(digits);
+    checkDuplicatePhone(digits);
+  };
+
+  // Cleanup debounce timer
+  useEffect(() => {
+    return () => { if (phoneCheckTimerRef.current) clearTimeout(phoneCheckTimerRef.current); };
+  }, []);
+
   const resetForm = () => {
     setForm({ ...EMPTY_FORM });
     setCustomArea('');
+    setCustomerPhone('');
+    setPhoneError('');
+    setDuplicateLead(null);
+    setMergeMode('none');
+    setIsCheckingPhone(false);
+    if (phoneCheckTimerRef.current) clearTimeout(phoneCheckTimerRef.current);
     setShowQualifyForm(false);
     setCallState('waiting');
     setIncomingPhone('');
@@ -192,20 +237,25 @@ export function IncomingPage() {
     setCallQueue(prev => prev.filter(c => c.phone !== item.phone));
     setForm({ ...EMPTY_FORM });
     setCustomArea('');
+    setCustomerPhone('');
+    setDuplicateLead(null);
+    setMergeMode('none');
     setShowQualifyForm(false);
     setIncomingPhone(item.phone);
     setCallState('ended');
   };
 
   const handleSaveAndAssign = async () => {
-    if (!activePhone) { showToast('No phone number to save', 'error'); return; }
+    const digits = customerPhone.replace(/\D/g, '');
+    if (digits.length !== 10) { showToast("Enter customer's 10-digit phone number", 'error'); return; }
     if (!form.assignTo) { showToast('Please select a staff member to assign', 'error'); return; }
+    if (duplicateLead && mergeMode === 'none') { showToast('Duplicate found — choose Update Existing or Create New', 'error'); return; }
     const assignedStaff = STAFF_LIST.find(s => s.value === form.assignTo);
     const areaValue = form.area === '__custom__' ? customArea : form.area;
     setIsSubmitting(true);
     try {
-      await createLead({
-        phone: activePhone,
+      const leadData: Partial<Lead> = {
+        phone: digits,
         name: form.name || null,
         source: ivrData.source || 'direct_referral',
         language: ivrData.language || 'hindi',
@@ -220,9 +270,16 @@ export function IncomingPage() {
         visit_intent: form.visitIntent as Lead['visit_intent'] || null,
         call_notes: form.callNotes.length > 0 ? form.callNotes : null,
         stage: 'qualified',
-      });
-      showToast(`Lead saved & assigned to ${assignedStaff?.name || 'staff'}`, 'success');
-      setCallHistory(prev => [{ phone: activePhone, time: new Date(), saved: true }, ...prev.slice(0, 19)]);
+        assigned_to: form.assignTo || null,
+      };
+      if (mergeMode === 'update' && duplicateLead) {
+        await updateLead(duplicateLead.id, leadData);
+        showToast(`Updated lead & assigned to ${assignedStaff?.name || 'staff'}`, 'success');
+      } else {
+        await createLead(leadData);
+        showToast(`Lead saved & assigned to ${assignedStaff?.name || 'staff'}`, 'success');
+      }
+      setCallHistory(prev => [{ phone: digits, time: new Date(), saved: true }, ...prev.slice(0, 19)]);
       resetForm();
     } catch {
       showToast('Failed to save lead', 'error');
@@ -232,17 +289,18 @@ export function IncomingPage() {
   };
 
   const handleCallback = async () => {
-    if (!activePhone) { showToast('No phone number', 'error'); return; }
+    const effectivePhone = customerPhone.length === 10 ? customerPhone : activePhone;
+    if (!effectivePhone) { showToast('No phone number', 'error'); return; }
     try {
       await callbacksApi.create({
-        phone: activePhone,
-        source: (ivrData.source as string) || null,
-        interest: (form.interest as string) || null,
+        phone: effectivePhone,
+        source: ivrData.source || null,
+        interest: (form.interest || null) as Callback['interest'],
         missed_at: new Date().toISOString(),
         status: 'pending',
       });
       showToast('Added to callback queue', 'success');
-      setCallHistory(prev => [{ phone: activePhone, time: new Date(), saved: false }, ...prev.slice(0, 19)]);
+      setCallHistory(prev => [{ phone: effectivePhone, time: new Date(), saved: false }, ...prev.slice(0, 19)]);
       resetForm();
       navigate('/bdc/callbacks');
     } catch {
@@ -250,8 +308,23 @@ export function IncomingPage() {
     }
   };
 
-  const handleSpam = () => {
-    showToast('Marked as spam/wrong number', 'warning');
+  const handleSpam = async () => {
+    const effectivePhone = customerPhone.length === 10 ? customerPhone : activePhone;
+    if (effectivePhone) {
+      try {
+        await createLead({
+          phone: effectivePhone,
+          source: ivrData.source || 'direct_referral',
+          stage: 'lead_created',
+          is_spam: true,
+        });
+        showToast('Marked as spam/wrong number', 'warning');
+      } catch {
+        showToast('Marked as spam/wrong number', 'warning');
+      }
+    } else {
+      showToast('Marked as spam/wrong number', 'warning');
+    }
     resetForm();
   };
 
@@ -284,7 +357,7 @@ export function IncomingPage() {
                     </div>
                     <div className="flex gap-1.5">
                       <button
-                        onClick={() => window.open(`tel:${item.phone}`, '_self')}
+                        onClick={() => window.open(`tel:${sanitizePhone(item.phone)}`, '_self')}
                         className="px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg active:scale-95"
                       >
                         Call
@@ -424,10 +497,11 @@ export function IncomingPage() {
             <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-          {activePhone || 'Unknown'}
-        </h2>
-        <p className={`text-sm mt-1 font-medium ${
+        <p className="text-sm font-mono text-gray-400 tracking-wide">
+          IVR: <span className="line-through">{activePhone || 'Unknown'}</span>
+        </p>
+        <p className="text-[10px] text-gray-300 mt-0.5">IVR number — ask customer for real number</p>
+        <p className={`text-sm mt-1.5 font-medium ${
           callState === 'ringing' ? 'text-green-600' :
           callState === 'on_call' ? 'text-blue-600' : 'text-gray-500'
         }`}>
@@ -440,7 +514,7 @@ export function IncomingPage() {
       {!showQualifyForm && (
         <div className="flex gap-2">
           <button
-            onClick={() => window.open(`tel:${activePhone}`, '_self')}
+            onClick={() => window.open(`tel:${sanitizePhone(activePhone)}`, '_self')}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-50 text-green-700 rounded-xl text-sm font-semibold active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -449,7 +523,7 @@ export function IncomingPage() {
             Call
           </button>
           <button
-            onClick={() => window.open(`sms:${activePhone}`, '_self')}
+            onClick={() => window.open(`sms:${sanitizePhone(activePhone)}`, '_self')}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-700 rounded-xl text-sm font-semibold active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -458,7 +532,7 @@ export function IncomingPage() {
             SMS
           </button>
           <button
-            onClick={() => window.open(`https://wa.me/91${activePhone}`, '_blank')}
+            onClick={() => window.open(`https://wa.me/91${sanitizePhone(activePhone)}`, '_blank')}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-semibold active:scale-95"
           >
             WhatsApp
@@ -481,6 +555,97 @@ export function IncomingPage() {
       {showQualifyForm && (
         <div className="space-y-1 bg-gray-50 rounded-2xl p-4 border border-gray-100">
           <p className="text-xs text-gray-500 text-center mb-3">Tap to select — zero typing qualification</p>
+
+          {/* Customer Phone Number (mandatory) */}
+          <div className="mb-3">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Customer Phone <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={customerPhone}
+                onChange={(e) => handleCustomerPhoneChange(e.target.value)}
+                placeholder="Ask customer their real number..."
+                maxLength={10}
+                className={`w-full px-3 py-2.5 text-sm border rounded-xl bg-white focus:ring-2 outline-none font-mono tracking-wider ${
+                  phoneError ? 'border-red-300 focus:ring-red-300' :
+                  duplicateLead ? 'border-amber-300 focus:ring-amber-300' :
+                  customerPhone.length === 10 && !isCheckingPhone ? 'border-green-300 focus:ring-green-300' :
+                  'border-gray-200 focus:ring-primary-300'
+                }`}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                {isCheckingPhone && (
+                  <div className="w-4 h-4 border-2 border-primary-300 border-t-transparent rounded-full animate-spin" />
+                )}
+                {!isCheckingPhone && customerPhone.length === 10 && !duplicateLead && !phoneError && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                )}
+                {duplicateLead && !isCheckingPhone && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-300 mt-0.5 text-right">{customerPhone.length}/10</p>
+            {phoneError && <p className="text-[10px] text-red-500 mt-0.5">{phoneError}</p>}
+          </div>
+
+          {/* Duplicate Lead Found */}
+          {duplicateLead && (
+            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span className="text-xs font-bold text-amber-700">Existing Lead Found</span>
+              </div>
+              <div className="bg-white rounded-lg p-2.5 mb-2.5 border border-amber-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-semibold text-gray-900">{duplicateLead.name || 'No name'}</span>
+                  <ScoreBadge score={duplicateLead.score} size="sm" />
+                </div>
+                <div className="space-y-0.5 text-[11px] text-gray-500">
+                  {duplicateLead.interest && (
+                    <p>Interest: <span className="font-medium text-gray-700">{getInterestLabel(duplicateLead.interest)}</span>
+                      {duplicateLead.brand && <span> — {duplicateLead.brand}</span>}
+                    </p>
+                  )}
+                  <p>Stage: <span className="font-medium text-gray-700">{getStageLabel(duplicateLead.stage)}</span></p>
+                  {duplicateLead.last_contact && (
+                    <p>Last contact: <span className="font-medium text-gray-700">{timeAgo(duplicateLead.last_contact)}</span></p>
+                  )}
+                  <p>Created: <span className="font-medium text-gray-700">{timeAgo(duplicateLead.created_at)}</span></p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMergeMode('update')}
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg active:scale-95 transition-colors ${
+                    mergeMode === 'update' ? 'bg-amber-600 text-white' : 'bg-white text-amber-700 border border-amber-300'
+                  }`}
+                >
+                  Update Existing
+                </button>
+                <button
+                  onClick={() => setMergeMode('create')}
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg active:scale-95 transition-colors ${
+                    mergeMode === 'create' ? 'bg-primary-500 text-white' : 'bg-white text-gray-600 border border-gray-300'
+                  }`}
+                >
+                  Create New Lead
+                </button>
+              </div>
+              {mergeMode === 'none' && (
+                <p className="text-[10px] text-amber-600 mt-1.5 text-center">Choose an action above to continue</p>
+              )}
+            </div>
+          )}
 
           {/* Name with Mic */}
           <div className="mb-3">
@@ -611,8 +776,8 @@ export function IncomingPage() {
 
           {/* Action Buttons */}
           <div className="space-y-2 pt-3">
-            <Button variant="success" size="xl" fullWidth onClick={handleSaveAndAssign} disabled={isSubmitting} icon={<span>✓</span>}>
-              {isSubmitting ? 'SAVING...' : 'SAVE & ASSIGN'}
+            <Button variant="success" size="xl" fullWidth onClick={handleSaveAndAssign} disabled={isSubmitting || customerPhone.length !== 10 || (duplicateLead !== null && mergeMode === 'none')} icon={<span>✓</span>}>
+              {isSubmitting ? 'SAVING...' : mergeMode === 'update' ? 'UPDATE & ASSIGN' : 'SAVE & ASSIGN'}
             </Button>
             <div className="flex gap-2">
               <Button variant="warning" size="md" fullWidth onClick={handleCallback}>CALLBACK</Button>

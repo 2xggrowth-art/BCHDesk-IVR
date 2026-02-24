@@ -18,6 +18,18 @@ function canUseSupabase(): boolean {
   return isOnline && isSupabaseConfigured();
 }
 
+// Track whether Supabase auth session is ready (set after successful signIn)
+let supabaseSessionReady = false;
+export function setSupabaseSessionReady(ready: boolean) { supabaseSessionReady = ready; }
+
+/** Wraps a promise-like with a timeout to prevent indefinite hangs */
+function withTimeout<T>(promiseLike: PromiseLike<T>, ms = 8000): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promiseLike),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Query timeout')), ms)),
+  ]);
+}
+
 // ============================================================
 // LEADS API
 // ============================================================
@@ -29,22 +41,30 @@ export const leadsApi = {
     score?: string;
     is_spam?: boolean;
   }): Promise<Lead[]> {
-    if (!canUseSupabase()) {
+    if (!canUseSupabase() || !supabaseSessionReady) {
       return getCachedData<Lead>('leads');
     }
 
-    let query = supabase.from('leads').select('*').eq('is_spam', false).order('created_at', { ascending: false });
+    let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
 
     if (filters?.stage) query = query.eq('stage', filters.stage);
     if (filters?.assigned_to) query = query.eq('assigned_to', filters.assigned_to);
     if (filters?.score) query = query.eq('score', filters.score);
-    if (filters?.is_spam !== undefined) query = query.eq('is_spam', filters.is_spam);
+    // Apply is_spam filter: use provided value or default to false
+    if (filters?.is_spam !== undefined) {
+      query = query.eq('is_spam', filters.is_spam);
+    } else {
+      query = query.eq('is_spam', false);
+    }
 
-    const { data, error } = await query;
+    const { data, error } = await withTimeout(query);
     if (error) throw error;
 
     const leads = (data || []) as Lead[];
-    await cacheData('leads', leads);
+    // Only cache unfiltered results to avoid overwriting full cache with partial data
+    if (!filters || Object.keys(filters).length === 0) {
+      await cacheData('leads', leads);
+    }
     return leads;
   },
 
@@ -96,7 +116,16 @@ export const leadsApi = {
 
   async create(lead: Partial<Lead>): Promise<Lead> {
     if (!canUseSupabase()) {
-      const offlineLead = { ...lead, id: crypto.randomUUID(), created_at: new Date().toISOString() } as Lead;
+      const offlineLead = {
+        ...lead,
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        score: lead.score || 'cold',
+        score_value: lead.score_value || 0,
+        is_spam: lead.is_spam ?? false,
+        stage: lead.stage || 'lead_created',
+      } as Lead;
       await queueAction('leads', 'insert', offlineLead as unknown as Record<string, unknown>);
       return offlineLead;
     }

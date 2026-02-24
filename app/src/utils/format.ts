@@ -119,3 +119,8 @@ export function percentOf(part: number, total: number): string {
   if (total === 0) return '0%';
   return `${Math.round((part / total) * 100)}%`;
 }
+
+/** Sanitize phone number to digits only (strips non-numeric chars for safe use in URLs) */
+export function sanitizePhone(phone: string): string {
+  return phone.replace(/[^\d+]/g, '');
+}

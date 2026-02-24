@@ -2,19 +2,34 @@
 // BCH CRM - BDC Leads List Page
 // ============================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LeadCard } from '@/components/shared/LeadCard';
 import { useLeadsStore } from '@/store/leadsStore';
+import { supabase, isSupabaseConfigured } from '@/services/supabase';
+import { setSupabaseSessionReady } from '@/services/api';
 
 export function LeadsListPage() {
   const navigate = useNavigate();
   const { leads, isLoading, fetchLeads } = useLeadsStore();
   const [filter, setFilter] = useState('all');
 
+  // Fetch leads on mount, and re-fetch when Supabase session becomes available
+  const loadLeads = useCallback(() => { fetchLeads(); }, [fetchLeads]);
+
   useEffect(() => {
-    fetchLeads();
-  }, [fetchLeads]);
+    loadLeads();
+
+    // Listen for Supabase auth state changes — re-fetch when session is established
+    if (!isSupabaseConfigured()) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        setSupabaseSessionReady(true);
+        loadLeads();
+      }
+    });
+    return () => { subscription.unsubscribe(); };
+  }, [loadLeads]);
 
   const filteredLeads = leads.filter((lead) => {
     if (filter === 'today') {

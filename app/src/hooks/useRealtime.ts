@@ -2,7 +2,7 @@
 // BCH CRM - Realtime Subscription Hook
 // ============================================================
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 
 type RealtimeCallback = (payload: {
@@ -16,6 +16,10 @@ export function useRealtime(
   callback: RealtimeCallback,
   enabled = true
 ) {
+  // Use ref to hold latest callback to avoid re-subscribing on every render
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
   useEffect(() => {
     if (!enabled || !isSupabaseConfigured()) return;
 
@@ -25,7 +29,7 @@ export function useRealtime(
         'postgres_changes',
         { event: '*', schema: 'public', table },
         (payload) => {
-          callback({
+          callbackRef.current({
             eventType: payload.eventType,
             new: payload.new as Record<string, unknown>,
             old: payload.old as Record<string, unknown>,
@@ -37,5 +41,5 @@ export function useRealtime(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [table, callback, enabled]);
+  }, [table, enabled]);
 }

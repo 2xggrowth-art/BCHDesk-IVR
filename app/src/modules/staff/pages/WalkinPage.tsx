@@ -61,7 +61,7 @@ export function WalkinPage() {
         outcome: (outcome as WalkinOutcome) || null,
         walkout_reason: outcome === 'walked_out' ? (walkoutReason as WalkoutReason) : null,
         invoice_number: outcome === 'purchased' ? invoiceNumber : null,
-        follow_up_date: outcome === 'coming_back' ? new Date(followUpDate).toISOString() : null,
+        follow_up_date: outcome === 'coming_back' && followUpDate ? new Date(followUpDate).toISOString() : null,
       });
 
       // If purchased, update the lead too
@@ -226,7 +226,7 @@ export function WalkinPage() {
         size="xl"
         fullWidth
         onClick={handleCapture}
-        disabled={!interest && !matchedLead?.interest}
+        disabled={(!interest && !matchedLead?.interest) || !outcome}
       >
         CAPTURE WALK-IN
       </Button>

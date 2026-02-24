@@ -144,24 +144,24 @@ export const LEAD_STAGES: ChipOption[] = [
   { value: 'lost', label: 'Lost' },
 ];
 
-// Staff list for manual assignment
+// Staff list for manual assignment (value = user UUID for proper lead assignment)
 export const STAFF_LIST: { value: string; name: string; specialty: string }[] = [
-  { value: 'suma', name: 'Suma', specialty: 'E-cycles' },
-  { value: 'abhi', name: 'Abhi Gowda', specialty: 'Gear Cycles' },
-  { value: 'nithin', name: 'Nithin', specialty: 'Kids/Budget' },
-  { value: 'baba', name: 'Baba', specialty: '2nd Life' },
-  { value: 'ranjitha', name: 'Ranjitha', specialty: 'Service' },
-  { value: 'sunil', name: 'Sunil', specialty: 'Premium' },
+  { value: 'bae31ae2-994a-469c-8554-e37b161c51e7', name: 'Suma', specialty: 'E-cycles' },
+  { value: 'a1b2c3d4-1111-2222-3333-444455556666', name: 'Abhi Gowda', specialty: 'Gear Cycles' },
+  { value: 'a1b2c3d4-2222-3333-4444-555566667777', name: 'Nithin', specialty: 'Kids/Budget' },
+  { value: 'a1b2c3d4-3333-4444-5555-666677778888', name: 'Baba', specialty: '2nd Life' },
+  { value: 'a1b2c3d4-4444-5555-6666-777788889999', name: 'Ranjitha', specialty: 'Service' },
+  { value: 'a1b2c3d4-5555-6666-7777-888899990000', name: 'Sunil', specialty: 'Premium' },
 ];
 
-// Staff auto-assignment rules (kept for reference)
-export const ASSIGNMENT_RULES: Record<string, { name: string; specialty: string }> = {
-  electric: { name: 'Suma', specialty: 'E-cycles' },
-  gear: { name: 'Abhi Gowda', specialty: 'Gear Cycles' },
-  kids_teen: { name: 'Nithin', specialty: 'Kids/Budget' },
-  second_hand: { name: 'Baba', specialty: '2nd Life' },
-  service: { name: 'Ranjitha', specialty: 'Service' },
-  other: { name: 'Sunil', specialty: 'Premium' },
+// Staff auto-assignment rules by interest (value = user UUID)
+export const ASSIGNMENT_RULES: Record<string, { name: string; specialty: string; userId: string }> = {
+  electric: { name: 'Suma', specialty: 'E-cycles', userId: 'bae31ae2-994a-469c-8554-e37b161c51e7' },
+  gear: { name: 'Abhi Gowda', specialty: 'Gear Cycles', userId: 'a1b2c3d4-1111-2222-3333-444455556666' },
+  kids_teen: { name: 'Nithin', specialty: 'Kids/Budget', userId: 'a1b2c3d4-2222-3333-4444-555566667777' },
+  second_hand: { name: 'Baba', specialty: '2nd Life', userId: 'a1b2c3d4-3333-4444-5555-666677778888' },
+  service: { name: 'Ranjitha', specialty: 'Service', userId: 'a1b2c3d4-4444-5555-6666-777788889999' },
+  other: { name: 'Sunil', specialty: 'Premium', userId: 'a1b2c3d4-5555-6666-7777-888899990000' },
 };
 
 // Interest → Brands mapping (which brands show for each interest)

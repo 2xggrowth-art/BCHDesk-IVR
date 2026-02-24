@@ -45,14 +45,15 @@ export function UsersPage() {
           .from('users')
           .select('id, name, role, specialty, is_active')
           .order('name');
-        if (data) {
+        if (data && data.length > 0) {
           setUsers(data.map(u => ({ ...u, email: '' })) as AppUser[]);
+          setIsLoading(false);
+          return;
         }
       } catch { /* ignore */ }
     }
-    // Always show hardcoded users as fallback
-    if (users.length === 0) {
-      setUsers([
+    // Always show hardcoded users as fallback if no data from Supabase
+    setUsers([
         { id: '1', name: 'Ibrahim', email: 'ibrahim@bch.com', role: 'manager', specialty: 'Manager', is_active: true },
         { id: '2', name: 'Anushka', email: 'anushka@bch.com', role: 'bdc', specialty: 'BDC', is_active: true },
         { id: '3', name: 'Suma', email: 'suma@bch.com', role: 'staff', specialty: 'E-cycles', is_active: true },
@@ -62,7 +63,6 @@ export function UsersPage() {
         { id: '7', name: 'Ranjitha', email: 'ranjitha@bch.com', role: 'staff', specialty: 'Service', is_active: true },
         { id: '8', name: 'Sunil', email: 'sunil@bch.com', role: 'staff', specialty: 'Premium', is_active: true },
       ]);
-    }
     setIsLoading(false);
   };
 
@@ -168,7 +168,7 @@ export function UsersPage() {
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Password *</label>
             <input
-              type="text" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+              type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
               placeholder="Set password"
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary-300"
             />
@@ -198,23 +198,22 @@ export function UsersPage() {
         </Card>
       )}
 
-      {/* Login credentials reference */}
+      {/* User roles reference */}
       <Card className="p-4">
-        <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Login Credentials</h3>
+        <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Role Overview</h3>
         <div className="space-y-2 text-xs">
           <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-            <span className="font-medium text-gray-700">Manager (Ibrahim)</span>
-            <span className="text-gray-400 font-mono">ibrahim@bch.com / bch2024mgr</span>
+            <span className="font-medium text-gray-700">Manager</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColor('manager')}`}>MANAGER</span>
           </div>
           <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-            <span className="font-medium text-gray-700">BDC (Anushka)</span>
-            <span className="text-gray-400 font-mono">anushka@bch.com / bch2024bdc</span>
+            <span className="font-medium text-gray-700">BDC Caller</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColor('bdc')}`}>BDC</span>
           </div>
           <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-            <span className="font-medium text-gray-700">Staff (Suma)</span>
-            <span className="text-gray-400 font-mono">suma@bch.com / bch2024staff</span>
+            <span className="font-medium text-gray-700">Sales Staff</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColor('staff')}`}>STAFF</span>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">All staff use password: bch2024staff</p>
         </div>
       </Card>
 

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ChipBadge } from '@/components/ui/Chip';
 import { followupsApi, leadsApi } from '@/services/api';
+import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { formatDate, timeAgo } from '@/utils/format';
@@ -36,13 +37,27 @@ export function FollowupsPage() {
         data = await followupsApi.getByUser(user.id, filter === 'completed' ? 'completed' : 'pending');
       }
 
-      // Enrich with lead data
-      const enriched = await Promise.all(
-        data.map(async (f) => {
-          const lead = await leadsApi.getById(f.lead_id);
-          return { ...f, lead: lead || undefined };
-        })
-      );
+      // Enrich with lead data — batch fetch to avoid N+1 queries
+      const leadIds = [...new Set(data.map(f => f.lead_id))];
+      let leadsMap = new Map<string, Lead>();
+      if (leadIds.length > 0 && isSupabaseConfigured()) {
+        const { data: leads } = await supabase.from('leads').select('*').in('id', leadIds);
+        if (leads) {
+          for (const l of leads as Lead[]) {
+            leadsMap.set(l.id, l);
+          }
+        }
+      } else {
+        // Fallback: individual fetches (offline mode)
+        for (const id of leadIds) {
+          const lead = await leadsApi.getById(id);
+          if (lead) leadsMap.set(lead.id, lead);
+        }
+      }
+      const enriched = data.map(f => ({
+        ...f,
+        lead: leadsMap.get(f.lead_id) || undefined,
+      }));
 
       setFollowups(enriched);
     } catch {
