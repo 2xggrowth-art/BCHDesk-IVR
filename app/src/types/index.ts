@@ -50,6 +50,7 @@ export interface User {
   phone: string | null;
   avatar_url: string | null;
   specialty: string | null;
+  pin: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

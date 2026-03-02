@@ -98,7 +98,7 @@ export const leadsApi = {
   },
 
   async getByAssignee(userId: string): Promise<Lead[]> {
-    if (!canUseSupabase()) {
+    if (!canUseSupabase() || !supabaseSessionReady) {
       const cached = await getCachedData<Lead>('leads');
       return cached.filter(l => l.assigned_to === userId);
     }
@@ -609,3 +609,48 @@ export async function syncPendingActions(): Promise<number> {
 
   return synced;
 }
+
+// ============================================================
+// PENDING CALLS API (CallerDesk IVR Integration)
+// ============================================================
+
+export const pendingCallsApi = {
+  async getByPhone(phone: string): Promise<Record<string, unknown> | null> {
+    if (!canUseSupabase()) return null;
+    const digits = phone.replace(/\D/g, '').slice(-10);
+    if (digits.length < 10) return null;
+    const { data, error } = await supabase
+      .from('pending_calls')
+      .select('*')
+      .eq('caller_number', digits)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) { console.error('pending_calls lookup error:', error); return null; }
+    return data;
+  },
+
+  async getLatestPending(): Promise<Record<string, unknown> | null> {
+    if (!canUseSupabase()) return null;
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('pending_calls')
+      .select('*')
+      .eq('status', 'pending')
+      .gte('created_at', fiveMinAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) { console.error('pending_calls latest error:', error); return null; }
+    return data;
+  },
+
+  async markHandled(id: string): Promise<void> {
+    if (!canUseSupabase()) return;
+    await supabase
+      .from('pending_calls')
+      .update({ status: 'matched', matched_at: new Date().toISOString() })
+      .eq('id', id);
+  },
+};

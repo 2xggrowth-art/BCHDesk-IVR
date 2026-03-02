@@ -2,7 +2,7 @@
 // BCH CRM - Manager: Live Dashboard
 // ============================================================
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, StatCard, AlertCard } from '@/components/ui/Card';
 import { ChipBadge } from '@/components/ui/Chip';
 import { dashboardApi, followupsApi } from '@/services/api';
@@ -11,40 +11,41 @@ import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { formatRupees, percentOf } from '@/utils/format';
 import type { StaffPerformance } from '@/types';
 
+const REFRESH_INTERVAL = 30_000; // 30 seconds
+
 export function LiveDashboard() {
   const { leads, fetchLeads, subscribeToChanges } = useLeadsStore();
   const [staffPerf, setStaffPerf] = useState<StaffPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [followupStats, setFollowupStats] = useState({ due: 0, completed: 0 });
+  const leadsVersionRef = useRef(0);
 
-  const loadDashboard = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(false);
+  // Refresh staff performance and follow-up stats (without full reload spinner)
+  const refreshStats = useCallback(async () => {
     try {
-      await fetchLeads();
       const perf = await dashboardApi.getStaffPerformance();
       setStaffPerf(perf as unknown as StaffPerformance[]);
 
-      // Fetch real follow-up compliance data
       if (isSupabaseConfigured()) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const { count: dueCount } = await supabase
-          .from('followups')
-          .select('*', { count: 'exact', head: true })
-          .gte('next_date', today.toISOString())
-          .lt('next_date', tomorrow.toISOString());
-
-        const { count: completedCount } = await supabase
-          .from('followups')
-          .select('*', { count: 'exact', head: true })
-          .gte('next_date', today.toISOString())
-          .lt('next_date', tomorrow.toISOString())
-          .eq('status', 'completed');
+        const [{ count: dueCount }, { count: completedCount }] = await Promise.all([
+          supabase
+            .from('followups')
+            .select('*', { count: 'exact', head: true })
+            .gte('next_date', today.toISOString())
+            .lt('next_date', tomorrow.toISOString()),
+          supabase
+            .from('followups')
+            .select('*', { count: 'exact', head: true })
+            .gte('next_date', today.toISOString())
+            .lt('next_date', tomorrow.toISOString())
+            .eq('status', 'completed'),
+        ]);
 
         setFollowupStats({
           due: dueCount || 0,
@@ -52,18 +53,71 @@ export function LiveDashboard() {
         });
       }
     } catch (err) {
+      console.error('Stats refresh failed:', err);
+    }
+  }, []);
+
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(false);
+    try {
+      await fetchLeads();
+      await refreshStats();
+    } catch (err) {
       console.error('Dashboard load failed:', err);
       setLoadError(true);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchLeads]);
+  }, [fetchLeads, refreshStats]);
 
+  // Initial load + real-time leads subscription
   useEffect(() => {
     loadDashboard();
     const unsub = subscribeToChanges();
     return unsub;
   }, [loadDashboard, subscribeToChanges]);
+
+  // Re-fetch staff perf & followups whenever leads array changes via real-time
+  useEffect(() => {
+    if (isLoading) return; // skip during initial load
+    // Increment version on every leads change to trigger refreshStats
+    leadsVersionRef.current += 1;
+    if (leadsVersionRef.current > 1) {
+      // Skip the first trigger (initial load already fetched stats)
+      refreshStats();
+    }
+  }, [leads, isLoading, refreshStats]);
+
+  // Real-time subscription for followups table
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    const channel = supabase
+      .channel('followups-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'followups' },
+        () => {
+          refreshStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refreshStats]);
+
+  // Periodic refresh as safety net (every 30s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchLeads();
+      refreshStats();
+    }, REFRESH_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [fetchLeads, refreshStats]);
 
   // Compute live stats from leads
   const today = new Date().toISOString().split('T')[0];

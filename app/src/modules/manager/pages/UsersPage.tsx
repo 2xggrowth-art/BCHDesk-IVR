@@ -1,21 +1,23 @@
 // ============================================================
 // BCH CRM - User Management Page (Manager Only)
-// Create, edit, toggle active status of staff/bdc users
+// Create users, toggle active, assign/change PINs
 // ============================================================
 
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useUIStore } from '@/store/uiStore';
+import { updateUserPin, addUser } from '@/store/authStore';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
+import type { UserRole } from '@/types';
 
 interface AppUser {
   id: string;
   name: string;
-  email: string;
   role: 'bdc' | 'staff' | 'manager';
   specialty: string;
   is_active: boolean;
+  pin?: string;
 }
 
 const ROLES: { value: string; label: string }[] = [
@@ -31,9 +33,10 @@ export function UsersPage() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'staff', specialty: '' });
+  const [form, setForm] = useState({ name: '', pin: '', role: 'staff', specialty: '' });
   const [isSaving, setIsSaving] = useState(false);
+  const [editingPinUserId, setEditingPinUserId] = useState<string | null>(null);
+  const [newPin, setNewPin] = useState('');
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -46,70 +49,74 @@ export function UsersPage() {
           .select('id, name, role, specialty, is_active')
           .order('name');
         if (data && data.length > 0) {
-          setUsers(data.map(u => ({ ...u, email: '' })) as AppUser[]);
+          setUsers(data.map(u => ({ ...u })) as AppUser[]);
           setIsLoading(false);
           return;
         }
       } catch { /* ignore */ }
     }
-    // Always show hardcoded users as fallback if no data from Supabase
+    // Hardcoded fallback
     setUsers([
-        { id: '1', name: 'Ibrahim', email: 'ibrahim@bch.com', role: 'manager', specialty: 'Manager', is_active: true },
-        { id: '2', name: 'Anushka', email: 'anushka@bch.com', role: 'bdc', specialty: 'BDC', is_active: true },
-        { id: '3', name: 'Suma', email: 'suma@bch.com', role: 'staff', specialty: 'E-cycles', is_active: true },
-        { id: '4', name: 'Abhi Gowda', email: 'abhi@bch.com', role: 'staff', specialty: 'Gear Cycles', is_active: true },
-        { id: '5', name: 'Nithin', email: 'nithin@bch.com', role: 'staff', specialty: 'Kids/Budget', is_active: true },
-        { id: '6', name: 'Baba', email: 'baba@bch.com', role: 'staff', specialty: '2nd Life', is_active: true },
-        { id: '7', name: 'Ranjitha', email: 'ranjitha@bch.com', role: 'staff', specialty: 'Service', is_active: true },
-        { id: '8', name: 'Sunil', email: 'sunil@bch.com', role: 'staff', specialty: 'Premium', is_active: true },
-      ]);
+      { id: 'd8513f8d-877f-4c20-b243-6dc839582778', name: 'Ibrahim', role: 'manager', specialty: 'Manager', is_active: true, pin: '0000' },
+      { id: 'c1a8c295-447e-498e-9702-52964d6d5352', name: 'Anushka', role: 'bdc', specialty: 'BDC', is_active: true, pin: '1111' },
+      { id: 'bae31ae2-994a-469c-8554-e37b161c51e7', name: 'Suma', role: 'staff', specialty: 'E-cycles', is_active: true, pin: '2222' },
+      { id: 'a1b2c3d4-1111-2222-3333-444455556666', name: 'Abhi Gowda', role: 'staff', specialty: 'Gear Cycles', is_active: true, pin: '3333' },
+      { id: 'a1b2c3d4-2222-3333-4444-555566667777', name: 'Nithin', role: 'staff', specialty: 'Kids/Budget', is_active: true, pin: '4444' },
+      { id: 'a1b2c3d4-3333-4444-5555-666677778888', name: 'Baba', role: 'staff', specialty: '2nd Life', is_active: true, pin: '5555' },
+      { id: 'a1b2c3d4-4444-5555-6666-777788889999', name: 'Ranjitha', role: 'staff', specialty: 'Service', is_active: true, pin: '6666' },
+      { id: 'a1b2c3d4-5555-6666-7777-888899990000', name: 'Sunil', role: 'staff', specialty: 'Premium', is_active: true, pin: '7777' },
+    ]);
     setIsLoading(false);
   };
 
   const handleCreateUser = async () => {
-    if (!form.name || !form.email || !form.password) {
-      showToast('Fill all required fields', 'error');
+    if (!form.name || !form.pin) {
+      showToast('Name and PIN are required', 'error');
+      return;
+    }
+    if (form.pin.length !== 4 || !/^\d{4}$/.test(form.pin)) {
+      showToast('PIN must be exactly 4 digits', 'error');
       return;
     }
     setIsSaving(true);
     try {
+      // Determine allowed apps based on role
+      const role = form.role as UserRole;
+      const allowedApps = role === 'manager'
+        ? ['manager', 'staff', 'bdc', 'all']
+        : role === 'bdc'
+          ? ['bdc', 'all']
+          : role === 'staff'
+            ? ['staff', 'bdc', 'all']
+            : ['all'];
+
+      // Add user locally (works offline, instant)
+      const newUser = addUser(form.name, form.pin, role, form.specialty || null, allowedApps);
+
+      // Also try Supabase in background (fire-and-forget)
       if (isSupabaseConfigured()) {
-        // Create auth user in Supabase
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: form.email,
-          password: form.password,
-          email_confirm: true,
-        });
-        if (authError) {
-          // Try regular signup if admin API not available
-          const { data: signupData, error: signupError } = await supabase.auth.signUp({
-            email: form.email,
-            password: form.password,
-          });
-          if (signupError) throw signupError;
-          if (signupData.user) {
-            await supabase.from('users').insert({
-              id: signupData.user.id,
-              name: form.name,
-              role: form.role,
-              specialty: form.specialty || null,
-              is_active: true,
-            });
-          }
-        } else if (authData.user) {
-          await supabase.from('users').insert({
-            id: authData.user.id,
-            name: form.name,
-            role: form.role,
-            specialty: form.specialty || null,
-            is_active: true,
-          });
-        }
+        supabase.from('users').insert({
+          id: newUser.id,
+          name: form.name,
+          role: form.role,
+          specialty: form.specialty || null,
+          is_active: true,
+        }).then(() => {});
       }
-      showToast(`User ${form.name} created!`, 'success');
-      setForm({ name: '', email: '', password: '', role: 'staff', specialty: '' });
+
+      // Add to local list immediately
+      setUsers(prev => [...prev, {
+        id: newUser.id,
+        name: form.name,
+        role: role,
+        specialty: form.specialty || '',
+        is_active: true,
+        pin: form.pin,
+      }]);
+
+      showToast(`${form.name} added with PIN!`, 'success');
+      setForm({ name: '', pin: '', role: 'staff', specialty: '' });
       setShowForm(false);
-      await loadUsers();
     } catch (e) {
       showToast(`Failed: ${(e as Error).message}`, 'error');
     } finally {
@@ -127,6 +134,26 @@ export function UsersPage() {
     showToast(`${user.name} ${user.is_active ? 'deactivated' : 'activated'}`, 'info');
   };
 
+  const handleChangePin = (userId: string) => {
+    if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      showToast('PIN must be exactly 4 digits', 'error');
+      return;
+    }
+    const updated = updateUserPin(userId, newPin);
+    if (updated) {
+      // Also update in Supabase if configured
+      if (isSupabaseConfigured()) {
+        supabase.from('users').update({ pin: newPin }).eq('id', userId).then(() => {});
+      }
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, pin: newPin } : u));
+      showToast('PIN updated successfully!', 'success');
+    } else {
+      showToast('Failed to update PIN', 'error');
+    }
+    setEditingPinUserId(null);
+    setNewPin('');
+  };
+
   const roleColor = (role: string) => {
     if (role === 'manager') return 'bg-purple-100 text-purple-700';
     if (role === 'bdc') return 'bg-green-100 text-green-700';
@@ -136,9 +163,9 @@ export function UsersPage() {
   return (
     <div className="p-4 pb-24 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-gray-900">Users & Logins</h2>
+        <h2 className="text-lg font-bold text-gray-900">Users & PINs</h2>
         <button
-          onClick={() => { setShowForm(!showForm); setEditingUser(null); }}
+          onClick={() => { setShowForm(!showForm); }}
           className="text-xs font-semibold text-white px-4 py-2 bg-primary-500 rounded-xl active:scale-95"
         >
           {showForm ? 'Cancel' : '+ Add User'}
@@ -158,19 +185,12 @@ export function UsersPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Email *</label>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">4-Digit PIN *</label>
             <input
-              type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              placeholder="name@bch.com"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary-300"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Password *</label>
-            <input
-              type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-              placeholder="Set password"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary-300"
+              type="password" inputMode="numeric" maxLength={4}
+              value={form.pin} onChange={e => { if (/^\d*$/.test(e.target.value)) setForm(p => ({ ...p, pin: e.target.value })); }}
+              placeholder="e.g. 1234"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-primary-300 tracking-[0.5em] text-center font-bold"
             />
           </div>
           <div>
@@ -198,7 +218,7 @@ export function UsersPage() {
         </Card>
       )}
 
-      {/* User roles reference */}
+      {/* Role Overview */}
       <Card className="p-4">
         <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Role Overview</h3>
         <div className="space-y-2 text-xs">
@@ -244,15 +264,45 @@ export function UsersPage() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleToggleActive(user)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg active:scale-95 ${
-                    user.is_active ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                  }`}
-                >
-                  {user.is_active ? 'Active' : 'Inactive'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setEditingPinUserId(editingPinUserId === user.id ? null : user.id); setNewPin(''); }}
+                    className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-600 active:scale-95"
+                  >
+                    PIN
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(user)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg active:scale-95 ${
+                      user.is_active ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                    }`}
+                  >
+                    {user.is_active ? 'Active' : 'Inactive'}
+                  </button>
+                </div>
               </div>
+
+              {/* PIN Edit Row */}
+              {editingPinUserId === user.id && (
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={newPin}
+                    onChange={e => { if (/^\d*$/.test(e.target.value)) setNewPin(e.target.value); }}
+                    placeholder="New 4-digit PIN"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-300 tracking-[0.3em] text-center font-bold"
+                  />
+                  <button
+                    onClick={() => handleChangePin(user.id)}
+                    disabled={newPin.length !== 4}
+                    className="px-4 py-2 text-xs font-bold text-white bg-primary-500 rounded-xl active:scale-95 disabled:opacity-40"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
             </Card>
           ))}
         </div>

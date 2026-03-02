@@ -14,11 +14,12 @@ import { ChipGroup } from '@/components/ui/Chip';
 import { ScoreBadge } from '@/components/ui/ScoreBadge';
 import { useLeadsStore } from '@/store/leadsStore';
 import { useUIStore } from '@/store/uiStore';
-import { callbacksApi, leadsApi } from '@/services/api';
-import { timeAgo, getStageLabel, getInterestLabel } from '@/utils/format';
+import { callbacksApi, leadsApi, pendingCallsApi } from '@/services/api';
+import { supabase } from '@/services/supabase';
+import { timeAgo, getStageLabel, getInterestLabel, getSourceLabel } from '@/utils/format';
 import {
   AREAS, BUDGETS, VISIT_INTENTS, EMI_OPTIONS, CALL_NOTES, INTERESTS,
-  INTEREST_BRANDS, BRAND_MODELS, STAFF_LIST,
+  INTEREST_BRANDS, BRAND_MODELS, STAFF_LIST, SOURCES,
 } from '@/config/constants';
 import {
   startSpeechRecognition, startCallListener, onIncomingCall, onCallStateChanged,
@@ -33,7 +34,7 @@ interface QueuedCall {
 }
 
 const EMPTY_FORM = {
-  name: '', area: '', budget: '', interest: '', brand: '', model: '',
+  name: '', source: '', area: '', budget: '', interest: '', brand: '', model: '',
   visitIntent: '', emi: '', callNotes: [] as string[], assignTo: '',
 };
 
@@ -57,10 +58,12 @@ export function IncomingPage() {
   // Session history of completed qualifications
   const [callHistory, setCallHistory] = useState<{ phone: string; time: Date; saved: boolean }[]>([]);
 
-  // IVR data placeholder
-  const ivrData = useMemo(() => ({
-    source: 'direct_referral' as const, location: '', ageBracket: '', interest: '' as const, language: 'hindi',
-  }), []);
+  // CallerDesk IVR data (auto-filled from webhook via Realtime)
+  const [ivrData, setIvrData] = useState({
+    source: '' as string, location: '', ageBracket: '', interest: '' as string, language: 'hindi',
+  });
+  const [pendingCallId, setPendingCallId] = useState<string | null>(null);
+  const [ivrAutoDetected, setIvrAutoDetected] = useState(false);
 
   // Check if navigated from CallLog with a phone number
   useEffect(() => {
@@ -114,6 +117,47 @@ export function IncomingPage() {
     });
 
     return () => { removeIncoming(); removeStateChange(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // CallerDesk Realtime: listen for new pending_calls from webhook
+  useEffect(() => {
+    const channel = supabase
+      .channel('pending-calls-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'pending_calls', filter: 'status=eq.pending' },
+        (payload) => {
+          const row = payload.new as Record<string, string>;
+          if (!row.caller_number) return;
+
+          // Auto-fill IVR data from CallerDesk webhook
+          setIvrData(prev => ({
+            ...prev,
+            source: row.source || prev.source,
+          }));
+          setPendingCallId(row.id);
+          setIvrAutoDetected(true);
+
+          // Auto-fill source in the form
+          if (row.source) {
+            setForm(prev => ({ ...prev, source: prev.source || row.source }));
+          }
+
+          // Auto-fill customer phone from CallerDesk caller ID
+          const callerDigits = (row.caller_number || '').replace(/\D/g, '').slice(-10);
+          if (callerDigits.length === 10) {
+            setCustomerPhone(callerDigits);
+          }
+
+          // If not currently qualifying, show the incoming call
+          if (!qualifyingRef.current) {
+            setCallState('ringing');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Qualify form state
@@ -212,6 +256,13 @@ export function IncomingPage() {
     checkDuplicatePhone(digits);
   };
 
+  // Auto-trigger duplicate check when phone is set programmatically (CallerDesk auto-fill)
+  useEffect(() => {
+    if (customerPhone.length === 10 && ivrAutoDetected) {
+      checkDuplicatePhone(customerPhone);
+    }
+  }, [customerPhone, ivrAutoDetected]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cleanup debounce timer
   useEffect(() => {
     return () => { if (phoneCheckTimerRef.current) clearTimeout(phoneCheckTimerRef.current); };
@@ -230,6 +281,9 @@ export function IncomingPage() {
     setCallState('waiting');
     setIncomingPhone('');
     setManualPhone('');
+    setPendingCallId(null);
+    setIvrAutoDetected(false);
+    setIvrData({ source: '', location: '', ageBracket: '', interest: '', language: 'hindi' });
   };
 
   // Pick next call from queue after finishing current one
@@ -257,7 +311,7 @@ export function IncomingPage() {
       const leadData: Partial<Lead> = {
         phone: digits,
         name: form.name || null,
-        source: ivrData.source || 'direct_referral',
+        source: (form.source || 'direct_referral') as Lead['source'],
         language: ivrData.language || 'hindi',
         location: ivrData.location || null,
         area: areaValue || null,
@@ -279,6 +333,10 @@ export function IncomingPage() {
         await createLead(leadData);
         showToast(`Lead saved & assigned to ${assignedStaff?.name || 'staff'}`, 'success');
       }
+      // Mark CallerDesk pending call as handled
+      if (pendingCallId) {
+        pendingCallsApi.markHandled(pendingCallId).catch(() => {});
+      }
       setCallHistory(prev => [{ phone: digits, time: new Date(), saved: true }, ...prev.slice(0, 19)]);
       resetForm();
     } catch {
@@ -294,7 +352,7 @@ export function IncomingPage() {
     try {
       await callbacksApi.create({
         phone: effectivePhone,
-        source: ivrData.source || null,
+        source: (form.source || null) as Callback['source'],
         interest: (form.interest || null) as Callback['interest'],
         missed_at: new Date().toISOString(),
         status: 'pending',
@@ -314,7 +372,7 @@ export function IncomingPage() {
       try {
         await createLead({
           phone: effectivePhone,
-          source: ivrData.source || 'direct_referral',
+          source: (form.source || 'direct_referral') as Lead['source'],
           stage: 'lead_created',
           is_spam: true,
         });
@@ -646,6 +704,39 @@ export function IncomingPage() {
               )}
             </div>
           )}
+
+          {/* Source / Profile — auto-detected from CallerDesk or manual */}
+          {ivrAutoDetected && (
+            <div className="mb-2 bg-green-50 border border-green-200 rounded-xl p-2.5 flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-green-700">CallerDesk auto-detected</p>
+                <p className="text-[10px] text-green-600">
+                  {form.source && <>Source: {getSourceLabel(form.source)}</>}
+                  {form.source && customerPhone && ' · '}
+                  {customerPhone && <>Phone: {customerPhone}</>}
+                  {(form.source || customerPhone) && ' — you can override'}
+                </p>
+              </div>
+            </div>
+          )}
+          <div className="mb-3">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Source / Profile <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={form.source}
+              onChange={(e) => updateField('source', e.target.value)}
+              className={`w-full px-3 py-2.5 text-sm border rounded-xl bg-white focus:ring-2 focus:ring-primary-300 outline-none appearance-none ${
+                ivrAutoDetected && form.source ? 'border-green-300' : 'border-gray-200'
+              }`}
+            >
+              <option value="">Select source...</option>
+              {SOURCES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
 
           {/* Name with Mic */}
           <div className="mb-3">

@@ -131,6 +131,21 @@ export const SOURCES: ChipOption[] = [
   { value: 'ivr', label: 'IVR' },
 ];
 
+// CallerDesk DID number → lead source mapping (client-side fallback)
+// Primary mapping lives in Supabase ivr_number_map table
+export const DID_SOURCE_MAP: Record<string, string> = {
+  '9380097119': 'bch_main_ig',       // TS01 - Green Mobile
+  '7996994427': 'wattsonwheelz_ig',  // TS02 - Blue Mobile
+  '9019107283': 'bch_toyz_ig',       // TS03 - Red Mobile
+  '9844353759': 'direct_referral',   // TS05 - Red Mobile SIM 2
+  '9844079427': 'bch_2ndlife_ig',    // Second Hand
+  '9844187264': 'bch_2ndlife_ig',    // TS04 - Second Hand
+  '7996635356': 'bch_lux_ig',        // BCH Lux / Content
+  '8892031480': 'google_business',   // Google Profile
+  '9844223174': 'direct_referral',   // Service No
+  '8088329031': 'direct_referral',   // Delivery No
+};
+
 export const LEAD_STAGES: ChipOption[] = [
   { value: 'ivr_filtered', label: 'IVR Filtered' },
   { value: 'lead_created', label: 'Lead Created' },

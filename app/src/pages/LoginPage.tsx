@@ -1,164 +1,110 @@
 // ============================================================
 // BCH CRM - Login Page
-// Features: email login, biometric login, password toggle, role identity
+// Features: user selection + 4-digit PIN login
 // ============================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore, getAllUsers } from '@/store/authStore';
 import { BUILD_ROLE, getAppConfig } from '@/config/features';
-import {
-  isBiometricAvailable,
-  isBiometricEnabled,
-  verifyBiometric,
-  saveCredentials,
-  getCredentials,
-} from '@/services/biometric';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { login, isLoginInProgress, authError } = useAuthStore();
   const config = getAppConfig();
+  const availableUsers = getAllUsers();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [pin, setPin] = useState(['', '', '', '']);
   const [localError, setLocalError] = useState('');
-  const [biometricReady, setBiometricReady] = useState(false);
-  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
-  const pendingCredsRef = useRef<{ email: string; password: string } | null>(null);
+  const pinRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
-  // Check biometric availability on mount
+  // Auto-submit when all 4 digits entered
   useEffect(() => {
-    async function checkBiometric() {
-      try {
-        const available = await isBiometricAvailable();
-        const enabled = await isBiometricEnabled();
-        setBiometricReady(available && enabled);
-      } catch {
-        setBiometricReady(false);
-      }
+    if (pin.every(d => d !== '') && selectedUserId) {
+      handleLogin(pin.join(''));
     }
-    checkBiometric();
-  }, []);
+  }, [pin]);
 
-  // No auto-redirect useEffect — all navigation is explicit in handlers
-  // This prevents race conditions with the biometric prompt
+  const handlePinChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return; // Only digits
 
-  const handleLogin = async () => {
+    const newPin = [...pin];
+    if (value.length > 1) {
+      // Handle paste: distribute digits across boxes
+      const digits = value.split('').slice(0, 4 - index);
+      digits.forEach((d, i) => {
+        if (index + i < 4) newPin[index + i] = d;
+      });
+      setPin(newPin);
+      const nextIdx = Math.min(index + digits.length, 3);
+      pinRefs[nextIdx]?.current?.focus();
+      return;
+    }
+
+    newPin[index] = value;
+    setPin(newPin);
+    setLocalError('');
+
+    if (value && index < 3) {
+      pinRefs[index + 1]?.current?.focus();
+    }
+  };
+
+  const handlePinKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      const newPin = [...pin];
+      newPin[index - 1] = '';
+      setPin(newPin);
+      pinRefs[index - 1]?.current?.focus();
+    }
+  };
+
+  const handleLogin = async (pinCode?: string) => {
     if (isLoginInProgress) return;
 
-    if (!email || !password) {
-      setLocalError('Enter email and password');
+    const fullPin = pinCode || pin.join('');
+
+    if (!selectedUserId) {
+      setLocalError('Select your name');
+      return;
+    }
+    if (fullPin.length !== 4) {
+      setLocalError('Enter your 4-digit PIN');
       return;
     }
 
     setLocalError('');
 
     try {
-      await login(email.trim().toLowerCase(), password.trim());
-
-      // Login succeeded — now check biometric BEFORE navigating
-      try {
-        const available = await isBiometricAvailable();
-        const enabled = await isBiometricEnabled();
-
-        if (available && !enabled) {
-          // Save creds in ref (survives re-render) and show prompt
-          pendingCredsRef.current = { email: email.trim().toLowerCase(), password };
-          setShowBiometricPrompt(true);
-          return; // Don't navigate — show biometric prompt instead
-        }
-      } catch {
-        // Biometric check failed — just proceed to app
-      }
-
+      await login(selectedUserId, fullPin);
       navigate(config.defaultRoute, { replace: true });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed';
       setLocalError(msg);
+      // Clear PIN on error
+      setPin(['', '', '', '']);
+      pinRefs[0]?.current?.focus();
     }
   };
 
-  const handleBiometricLogin = async () => {
-    if (isLoginInProgress) return;
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
     setLocalError('');
-
-    try {
-      const creds = await getCredentials();
-      if (creds) {
-        await login(creds.email, creds.password);
-        navigate(config.defaultRoute, { replace: true });
-      } else {
-        setLocalError('Biometric cancelled. Please use email login.');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Biometric login failed';
-      setLocalError(msg);
-    }
-  };
-
-  const handleEnableBiometric = async () => {
-    if (pendingCredsRef.current) {
-      // Trigger device biometric/PIN prompt to verify identity FIRST
-      const verified = await verifyBiometric();
-      if (verified) {
-        await saveCredentials(pendingCredsRef.current.email, pendingCredsRef.current.password);
-      } else {
-        // Verification failed/cancelled — don't save, just proceed to app
-        setLocalError('Biometric verification failed. You can enable it later.');
-      }
-    }
-    pendingCredsRef.current = null;
-    setShowBiometricPrompt(false);
-    navigate(config.defaultRoute, { replace: true });
-  };
-
-  const handleSkipBiometric = () => {
-    pendingCredsRef.current = null;
-    setShowBiometricPrompt(false);
-    navigate(config.defaultRoute, { replace: true });
+    setPin(['', '', '', '']);
+    // Focus first PIN box after selecting user
+    setTimeout(() => pinRefs[0]?.current?.focus(), 100);
   };
 
   const displayError = localError || authError || '';
+  const selectedUser = availableUsers.find(u => u.id === selectedUserId);
 
-  // Biometric enable prompt (shown after first successful email login)
-  if (showBiometricPrompt) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-primary-500 to-primary-700 flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-sm">
-          <div className="bg-white rounded-2xl p-6 shadow-xl text-center">
-            <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary-500">
-                <path d="M12 11c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2" />
-                <path d="M12 11c0-2.76-2.24-5-5-5s-5 2.24-5 5 2.24 5 5 5" />
-                <path d="M12 11c0-4.42-3.58-8-8-8" />
-                <path d="M20 11c0-4.42-3.58-8-8-8" />
-                <path d="M20 11c0 4.42-3.58 8-8 8" />
-                <path d="M12 11c0 2.76-2.24 5-5 5" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Enable Fingerprint Login?</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Use your fingerprint to sign in quickly next time without typing your password.
-            </p>
-            <div className="space-y-3">
-              <Button variant="primary" size="lg" fullWidth onClick={handleEnableBiometric}>
-                Enable Fingerprint
-              </Button>
-              <button
-                onClick={handleSkipBiometric}
-                className="w-full py-3 text-sm text-gray-500 font-medium"
-              >
-                Maybe Later
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const roleColor = (role: string) => {
+    if (role === 'manager') return 'bg-purple-100 text-purple-700 border-purple-200';
+    if (role === 'bdc') return 'bg-green-100 text-green-700 border-green-200';
+    return 'bg-blue-100 text-blue-700 border-blue-200';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-500 to-primary-700 flex flex-col items-center justify-center px-6">
@@ -177,98 +123,112 @@ export function LoginPage() {
           )}
         </div>
 
-        {/* Login form */}
+        {/* Login card */}
         <div className="bg-white rounded-2xl p-6 shadow-xl">
-          <div className="space-y-4">
+          {/* Step 1: User Selection */}
+          {!selectedUserId ? (
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setLocalError(''); }}
-                placeholder="your@email.com"
-                disabled={isLoginInProgress}
-                className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none disabled:opacity-50 disabled:bg-gray-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setLocalError(''); }}
-                  placeholder="Enter password"
-                  disabled={isLoginInProgress}
-                  className="w-full px-4 py-3 pr-12 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none disabled:opacity-50 disabled:bg-gray-50"
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 active:text-gray-600 p-1"
-                >
-                  {showPassword ? (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
+              <h2 className="text-sm font-bold text-gray-700 mb-3">Who are you?</h2>
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {availableUsers.map(user => (
+                  <button
+                    key={user.id}
+                    onClick={() => handleUserSelect(user.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 active:scale-[0.98] active:bg-gray-50 transition-all"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-primary-600">{user.name.charAt(0)}</span>
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColor(user.role)}`}>
+                          {user.role.toUpperCase()}
+                        </span>
+                        {user.specialty && (
+                          <span className="text-[10px] text-gray-400 truncate">{user.specialty}</span>
+                        )}
+                      </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300 flex-shrink-0">
+                      <path d="M9 18l6-6-6-6" />
                     </svg>
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
-                </button>
+                  </button>
+                ))}
               </div>
             </div>
-
-            {/* Error message */}
-            {displayError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
-                <p className="text-xs text-red-600 font-medium">{displayError}</p>
-              </div>
-            )}
-
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              onClick={handleLogin}
-              disabled={isLoginInProgress}
-            >
-              {isLoginInProgress ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </div>
-
-          {/* Biometric login button (only if previously enabled) */}
-          {biometricReady && (
-            <div className="mt-5 pt-4 border-t border-gray-100">
+          ) : (
+            /* Step 2: PIN Entry */
+            <div>
+              {/* Selected user header */}
               <button
-                onClick={handleBiometricLogin}
-                disabled={isLoginInProgress}
-                className="w-full flex items-center justify-center gap-3 py-3 bg-gray-50 rounded-xl active:scale-[0.98] disabled:opacity-50"
+                onClick={() => { setSelectedUserId(''); setPin(['', '', '', '']); setLocalError(''); }}
+                className="flex items-center gap-2 mb-5 text-primary-500 active:opacity-70"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary-500">
-                  <path d="M12 11c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2" />
-                  <path d="M12 11c0-2.76-2.24-5-5-5s-5 2.24-5 5 2.24 5 5 5" />
-                  <path d="M12 11c0-4.42-3.58-8-8-8" />
-                  <path d="M20 11c0-4.42-3.58-8-8-8" />
-                  <path d="M20 11c0 4.42-3.58 8-8 8" />
-                  <path d="M12 11c0 2.76-2.24 5-5 5" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 18l-6-6 6-6" />
                 </svg>
-                <span className="text-sm font-semibold text-gray-700">Sign in with Fingerprint</span>
+                <span className="text-xs font-semibold">Change User</span>
               </button>
+
+              <div className="text-center mb-6">
+                <div className="w-14 h-14 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-lg font-bold text-primary-600">{selectedUser?.name.charAt(0)}</span>
+                </div>
+                <p className="text-base font-bold text-gray-900">{selectedUser?.name}</p>
+                <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${roleColor(selectedUser?.role || 'staff')}`}>
+                  {selectedUser?.role.toUpperCase()}
+                </span>
+              </div>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase text-center mb-3">Enter 4-Digit PIN</p>
+
+              {/* PIN Input Boxes */}
+              <div className="flex justify-center gap-3 mb-4">
+                {pin.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={pinRefs[i]}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={digit}
+                    onChange={(e) => handlePinChange(i, e.target.value)}
+                    onKeyDown={(e) => handlePinKeyDown(i, e)}
+                    disabled={isLoginInProgress}
+                    className="w-14 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none disabled:opacity-50 disabled:bg-gray-50"
+                  />
+                ))}
+              </div>
+
+              {/* Error message */}
+              {displayError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4">
+                  <p className="text-xs text-red-600 font-medium text-center">{displayError}</p>
+                </div>
+              )}
+
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                onClick={() => handleLogin()}
+                disabled={isLoginInProgress || pin.some(d => d === '')}
+              >
+                {isLoginInProgress ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </div>
+          )}
+
+          {/* Error when no user selected */}
+          {!selectedUserId && displayError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mt-3">
+              <p className="text-xs text-red-600 font-medium text-center">{displayError}</p>
             </div>
           )}
         </div>
 
-        <p className="text-center text-xs text-white/50 mt-6">v1.0.6 • BCH Lead Management</p>
+        <p className="text-center text-xs text-white/50 mt-6">v1.0.7 • BCH Lead Management</p>
       </div>
     </div>
   );
